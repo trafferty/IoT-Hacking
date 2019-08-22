@@ -49,11 +49,6 @@ void setup()
   pinMode( GREEN_LED_OUT, OUTPUT );
   pinMode( MOTION_DETECTED_LED, OUTPUT );
 
-  // turn all the lights on when the ESP first powers on
-  turnOn( );
-  delay(500);
-  turnOff();
-
   digitalWrite(MOTION_DETECTED_LED, HIGH);   // turn the LED on (HIGH is the voltage level)
   delay(200);                       // wait for a second
   digitalWrite(MOTION_DETECTED_LED, LOW);    // turn the LED off by making the voltage LOW
@@ -72,166 +67,73 @@ void fadeLEDs()
     case blue_to_violet:
       currentR += 1;
       analogWrite(RED_LED_OUT, currentR);
-      if (currentR == maxBrightness)
+      if (currentR == maxBrightness) {
         fade_state = violet_to_red;
+        Serial.println("Changing state to violet_to_red");
+      } 
       break;
 
     case violet_to_red:
       currentB -= 1;
       analogWrite(BLUE_LED_OUT, currentB);
-      if (currentR == minBrightness)
+      if (currentB == minBrightness) {
         fade_state = red_to_yellow;
+        Serial.println("Changing state to red_to_yellow");
+      } 
       break;
 
     case red_to_yellow:
       currentG += 1;
       analogWrite(GREEN_LED_OUT, currentG);
-      if (currentG == maxBrightness)
+      if (currentG == maxBrightness) {
         fade_state = yellow_to_green;
+        Serial.println("Changing state to yellow_to_green");
+      } 
       break;
 
     case yellow_to_green:
       currentR -= 1;
       analogWrite(RED_LED_OUT, currentR);
-      if (currentR == minBrightness)
+      if (currentR == minBrightness) {
         fade_state = green_to_teal;
+        Serial.println("Changing state to green_to_teal");
+      } 
       break;
 
     case green_to_teal:
       currentB += 1;
       analogWrite(BLUE_LED_OUT, currentB);
-      if (currentB == maxBrightness)
+      if (currentB == maxBrightness) {
         fade_state = teal_to_blue;
+        Serial.println("Changing state to teal_to_blue");
+      } 
       break;
 
     case teal_to_blue:
       currentG -= 1;
       analogWrite(GREEN_LED_OUT, currentG);
-      if (currentG == minBrightness)
+      if (currentG == minBrightness) {
         fade_state = blue_to_violet;
+        Serial.println("Changing state to blue_to_violet");
+      } 
       break;
+      
+    default:
+      Serial.println("fadeLEDs: state not supported");
+      fade_state = blue_to_violet;
   }
-}
-
-void turnOn( ) 
-{ 
-  setColorToLevel( "all", maxBrightness );
-}
-
-void turnOff( ) 
-{
-  setColorToLevel( "all", offBrightness );
-}
-
-void setColorToLevel( String color, int level ) 
-{ 
-  int redPin = RED_LED_OUT;
-  int greenPin = GREEN_LED_OUT;
-  int bluePin = BLUE_LED_OUT;
   
-  if( color == "red" )
-  {
-    analogWrite( redPin, level );
-    currentR = level;
-  }
-  if( color == "green" )
-  {
-    analogWrite( greenPin, level );
-    currentG = level;
-  }
-  if( color == "blue" )
-  {
-    analogWrite( bluePin, level );
-    currentB = level;
-  }
-  if( color == "all" )
-  {
-    analogWrite( redPin, level );
-    analogWrite( greenPin, level );
-    analogWrite( bluePin, level );
-    currentR = level;
-    currentG = level;
-    currentB = level;
-  }
-
-  currentRFirst = currentR;
-  currentGFirst = currentG;
-  currentBFirst = currentB;
+//  Serial.print(currentR);
+//  Serial.print(", ");
+//  Serial.print(currentG);
+//  Serial.print(", ");
+//  Serial.println(currentB);
 }
-
 void loop() {
-  int r, g, b;
-
-  digitalWrite(MOTION_DETECTED_LED, HIGH);   // turn the LED on (HIGH is the voltage level)
-  delay(200);                       // wait for a second
-  digitalWrite(MOTION_DETECTED_LED, LOW);    // turn the LED off by making the voltage LOW
-  delay(200);                       // wait for a second
-
-  // fade from blue to violet
-  for (r = 0; r < maxBrightness; r++) { 
-    analogWrite(RED_LED_OUT, r);
-    delay(FADESPEED);
-  } 
-  // fade from violet to red
-  for (b = maxBrightness; b > 0; b--) { 
-    analogWrite(BLUE_LED_OUT, b);
-    delay(FADESPEED);
-  } 
-  // fade from red to yellow
-  for (g = 0; g < maxBrightness; g++) { 
-    analogWrite(GREEN_LED_OUT, g);
-    delay(FADESPEED);
-  } 
-  // fade from yellow to green
-  for (r = maxBrightness; r > 0; r--) { 
-    analogWrite(RED_LED_OUT, r);
-    delay(FADESPEED);
-  } 
-  // fade from green to teal
-  for (b = 0; b < maxBrightness; b++) { 
-    analogWrite(BLUE_LED_OUT, b);
-    delay(FADESPEED);
-  } 
-  // fade from teal to blue
-  for (g = maxBrightness; g > 0; g--) { 
-    analogWrite(GREEN_LED_OUT, g);
-    delay(FADESPEED);
-  } 
-}
-void loop2() 
-{
-//  currentR += 10;
-//  if (currentR >= maxBrightness)
-//    currentR = 0;
-//  analogWrite( RED_LED_OUT, currentR );
-//  currentB += 20;
-//  if (currentB >= maxBrightness)
-//    currentB = 0;
-//  analogWrite( BLUE_LED_OUT, currentB );
-//  currentG += 30;
-//  if (currentG >= maxBrightness)
-//    currentG = 0;
-//  analogWrite( GREEN_LED_OUT, currentG );
-  Serial.println("Red On");
-  setColorToLevel( "red", maxBrightness );
-  delay( 1000 );
-  Serial.println("Red Off");
-  setColorToLevel( "red", offBrightness );
-  delay( 1000 );
-  Serial.println("Blue On");
-  setColorToLevel( "blue", maxBrightness );
-  delay( 1000 );
-  Serial.println("Blue Off");
-  setColorToLevel( "blue", offBrightness );
-  delay( 1000 );
-  Serial.println("Green On");
-  setColorToLevel( "green", maxBrightness );
-  delay( 1000 );
-  Serial.println("Green Off");
-  setColorToLevel( "green", offBrightness );
-  delay( 1000 );
-  Serial.println("Turn off");
-  turnOff();
-  delay(1000);
+  fadeLEDs();
+  delay(FADESPEED);
+//  digitalWrite(MOTION_DETECTED_LED, HIGH);   // turn the LED on (HIGH is the voltage level)
+//  delay(20);                       // wait for a second
+//  digitalWrite(MOTION_DETECTED_LED, LOW);    // turn the LED off by making the voltage LOW
 
 }

@@ -36,7 +36,10 @@ void digitalClockDisplay();
 void printDigits(int digits);
 void sendNTPpacket(IPAddress &address);
 
-tmElements_t tmAlarm;
+tmElements_t tmStart1;
+tmElements_t tmStart2;
+tmElements_t tmEnd1;
+tmElements_t tmEnd2;
 
 void setup()
 {
@@ -63,12 +66,12 @@ void setup()
   setSyncProvider(getNtpTime);
   setSyncInterval(300);
 
-  tmAlarm.Year = year();
-  tmAlarm.Month = month();
-  tmAlarm.Day = day();
-  tmAlarm.Second = 1;
-  tmAlarm.Minute = 5;
-  tmAlarm.Hour = 22;
+  tmStart1.Second = 0;
+  tmStart1.Minute = 47;
+  tmStart1.Hour = 21;
+  tmEnd1.Second = 0;
+  tmEnd1.Minute = tmStart1.Minute + 1;
+  tmEnd1.Hour = tmStart1.Hour;
 }
 
 time_t prevDisplay = 0; // when the digital clock was displayed
@@ -85,29 +88,26 @@ void loop_orig()
 
 void loop()
 {
-  tmAlarm.Year = year();
-  tmAlarm.Month = month();
-  tmAlarm.Day = day();
-  tmAlarm.Second = second();
-  tmAlarm.Minute = minute();
-  tmAlarm.Hour = hour();
+  tmStart1.Year = tmEnd1.Year = year() - 1970;
+  tmStart1.Month = tmEnd1.Month = month();
+  tmStart1.Day = tmEnd1.Day = day();
 
-  uint32_t alarm_time = makeTime(tmAlarm);
+  time_t start_time = makeTime(tmStart1);
+  time_t end_time = makeTime(tmEnd1);
   time_t now_time = now();
-  Serial.print("alarm_time: ");
-  Serial.println(alarm_time);
-  Serial.print("now_time: ");
-  Serial.println(now_time);
+//  Serial.print("alarm_time: ");
+//  Serial.println(alarm_time);
+//  Serial.print("now_time: ");
+//  Serial.println(now_time);
 
 
 
-  if (now_time >= alarm_time)
-  {
+  if ((now_time >= start_time) && (now_time <= end_time)) {
     Serial.println("Alarm!!");
-      uint32_t beginWait = millis();
-      while (millis() - beginWait < 1000);
-
   }
+  
+  digitalClockDisplay();
+  delay(1000);
 }
 
 void digitalClockDisplay()
@@ -151,19 +151,26 @@ time_t getNtpTime()
   Serial.print(": ");
   Serial.println(ntpServerIP);
   sendNTPpacket(ntpServerIP);
-  uint32_t beginWait = millis();
-  while (millis() - beginWait < 1500) {
-    int size = Udp.parsePacket();
-    if (size >= NTP_PACKET_SIZE) {
-      Serial.println("Receive NTP Response");
-      Udp.read(packetBuffer, NTP_PACKET_SIZE);  // read packet into the buffer
-      unsigned long secsSince1900;
-      // convert four bytes starting at location 40 to a long integer
-      secsSince1900 =  (unsigned long)packetBuffer[40] << 24;
-      secsSince1900 |= (unsigned long)packetBuffer[41] << 16;
-      secsSince1900 |= (unsigned long)packetBuffer[42] << 8;
-      secsSince1900 |= (unsigned long)packetBuffer[43];
-      return secsSince1900 - 2208988800UL + timeZone * SECS_PER_HOUR;
+
+  uint8_t attempt = 0;
+  uint8_t maxAttempts = 3;
+  while (attempt < maxAttempts) {
+    attempt++;
+    uint32_t beginWait = millis();
+    while (millis() - beginWait < 3000) {
+      int size = Udp.parsePacket();
+      if (size >= NTP_PACKET_SIZE) {
+        Serial.println(attempt);
+        Serial.println("Receive NTP Response");
+        Udp.read(packetBuffer, NTP_PACKET_SIZE);  // read packet into the buffer
+        unsigned long secsSince1900;
+        // convert four bytes starting at location 40 to a long integer
+        secsSince1900 =  (unsigned long)packetBuffer[40] << 24;
+        secsSince1900 |= (unsigned long)packetBuffer[41] << 16;
+        secsSince1900 |= (unsigned long)packetBuffer[42] << 8;
+        secsSince1900 |= (unsigned long)packetBuffer[43];
+        return secsSince1900 - 2208988800UL + timeZone * SECS_PER_HOUR;
+      }
     }
   }
   Serial.println("No NTP Response :-(");

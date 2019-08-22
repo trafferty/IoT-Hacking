@@ -7,16 +7,16 @@
 #include <ESP8266WebServer.h>
 #include <ESP8266mDNS.h>
 
+#include "/home/suzi/src/sketches/defs/sierra_wifi_defs.h"
+
 /*
 **  Network variables...
 */
 // NETWORK: Static IP and WIFI details...
-IPAddress ip(192, 168, 129, 200);  // make sure IP is *outside* of DHCP pool range
+IPAddress ip(192, 168, 129, 201);  // make sure IP is *outside* of DHCP pool range
 IPAddress gateway(192, 168, 129, 254);
 IPAddress subnet(255, 255, 255, 0);
 IPAddress DNS(192, 168, 129, 254);
-const char* ssid     = "Scalpel4";
-const char* password = "71372352127135124570917";
 int server_port = 80;
 
 // Set web server port number

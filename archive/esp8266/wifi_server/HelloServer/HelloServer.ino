@@ -1,67 +1,21 @@
-/*********
-*********/
-
-// Load Wi-Fi library
 #include <ESP8266WiFi.h>
 #include <WiFiClient.h>
 #include <ESP8266WebServer.h>
 #include <ESP8266mDNS.h>
 
-#include "/home/suzi/src/sketches/defs/sierra_wifi_defs.h"
+#ifndef STASSID
+#define STASSID "Scalpel4"
+#define STAPSK  "???????????????"
+#endif
 
-/*
-**  Network variables...
-*/
-// NETWORK: Static IP and WIFI details...
-IPAddress ip(192, 168, 129, 200);  // make sure IP is *outside* of DHCP pool range
-IPAddress gateway(192, 168, 129, 254);
-IPAddress subnet(255, 255, 255, 0);
-IPAddress DNS(192, 168, 129, 254);
-int server_port = 80;
+const char* ssid = STASSID;
+const char* password = STAPSK;
 
-// Set web server port number
-ESP8266WebServer server(server_port);
-// Variable to store the HTTP request
-String header;
+ESP8266WebServer server(80);
 
 const int led = 4;
 
 long randNumber;
-
-String IpAddress2String(const IPAddress& ipAddress)
-{
-  return String(ipAddress[0]) + String(".") +\
-  String(ipAddress[1]) + String(".") +\
-  String(ipAddress[2]) + String(".") +\
-  String(ipAddress[3])  ; 
-}
-
-void wifi_init()
-{
-  Serial.print("Setting up network with static IP: ");
-  Serial.println(IpAddress2String(ip));
-  WiFi.config(ip, gateway, subnet, DNS);
-  delay(100);
-  WiFi.mode(WIFI_STA);
-  WiFi.begin(ssid, password);
-  // Connect to Wi-Fi network with SSID and password
-  Serial.print("Connecting to ");
-  Serial.println(ssid);
-  while (WiFi.status() != WL_CONNECTED) {
-      Serial.print(".");
-      delay(200);
-  }
-  Serial.println();
-  while (WiFi.waitForConnectResult() != WL_CONNECTED) {
-    Serial.println("Fail connecting");
-    delay(5000);
-    ESP.restart();
-  }
-  Serial.println("");
-  Serial.println("WiFi connected.");
-  Serial.println("IP address: ");
-  Serial.println(WiFi.localIP());
-}
 
 void handleRoot() {
   digitalWrite(led, 1);
@@ -110,7 +64,20 @@ void setup(void) {
   pinMode(LED_BUILTIN, OUTPUT);     // Initialize the LED_BUILTIN pin as an output
   digitalWrite(led, 0);
   Serial.begin(115200);
-  wifi_init();
+  WiFi.mode(WIFI_STA);
+  WiFi.begin(ssid, password);
+  Serial.println("");
+
+  // Wait for connection
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    Serial.print(".");
+  }
+  Serial.println("");
+  Serial.print("Connected to ");
+  Serial.println(ssid);
+  Serial.print("IP address: ");
+  Serial.println(WiFi.localIP());
 
   if (MDNS.begin("esp8266")) {
     Serial.println("MDNS responder started");
@@ -135,7 +102,7 @@ void setup(void) {
 void loop(void) {
 
   randNumber = random(30000);
-  //Serial.println(randNumber);
+  Serial.println(randNumber);
   
   server.handleClient();
   MDNS.update();

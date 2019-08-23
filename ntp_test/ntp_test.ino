@@ -15,8 +15,7 @@
 /*
 **  Network variables...
 */
-// NETWORK: Static IP and WIFI details...
-IPAddress ip(192, 168, 129, 200);  // make sure IP is *outside* of DHCP pool range
+IPAddress ip(192, 168, 129, 222);  // make sure IP is *outside* of DHCP pool range
 IPAddress gateway(192, 168, 129, 254);
 IPAddress subnet(255, 255, 255, 0);
 IPAddress DNS(192, 168, 129, 254);
@@ -44,7 +43,6 @@ tmElements_t tmEnd2;
 void setup()
 {
   Serial.begin(9600);
-  while (!Serial) ; // Needed for Leonardo only
   delay(250);
   Serial.println("TimeNTP Example");
   Serial.print("Connecting to ");
@@ -64,11 +62,12 @@ void setup()
   Serial.println(Udp.localPort());
   Serial.println("waiting for sync");
   setSyncProvider(getNtpTime);
-  setSyncInterval(300);
+  setSyncInterval(5);
+  NTPTimeSet = false;
 
   tmStart1.Second = 0;
-  tmStart1.Minute = 47;
-  tmStart1.Hour = 21;
+  tmStart1.Minute = minute() + 1;
+  tmStart1.Hour = hour();
   tmEnd1.Second = 0;
   tmEnd1.Minute = tmStart1.Minute + 1;
   tmEnd1.Hour = tmStart1.Hour;
@@ -88,25 +87,38 @@ void loop_orig()
 
 void loop()
 {
-  tmStart1.Year = tmEnd1.Year = year() - 1970;
-  tmStart1.Month = tmEnd1.Month = month();
-  tmStart1.Day = tmEnd1.Day = day();
-
-  time_t start_time = makeTime(tmStart1);
-  time_t end_time = makeTime(tmEnd1);
-  time_t now_time = now();
-//  Serial.print("alarm_time: ");
-//  Serial.println(alarm_time);
-//  Serial.print("now_time: ");
-//  Serial.println(now_time);
-
-
-
-  if ((now_time >= start_time) && (now_time <= end_time)) {
-    Serial.println("Alarm!!");
-  }
-  
   digitalClockDisplay();
+
+  if (timeStatus() == timeNotSet)
+  {
+    if (!NTPTimeSet)
+    {
+      setSyncInterval(300);
+      NTPTimeSet = true;
+    }
+
+    tmStart1.Year = tmEnd1.Year = year() - 1970;
+    tmStart1.Month = tmEnd1.Month = month();
+    tmStart1.Day = tmEnd1.Day = day();
+
+    time_t start_time = makeTime(tmStart1);
+    time_t end_time = makeTime(tmEnd1);
+    time_t now_time = now();
+    //  Serial.print("alarm_time: ");
+    //  Serial.println(alarm_time);
+    //  Serial.print("now_time: ");
+    //  Serial.println(now_time);
+
+    if ((now_time >= start_time) && (now_time <= end_time)) {
+      Serial.println(": Alarm!!");
+    }
+  }
+  else
+  {
+    NTPTimeSet = false;
+    Serial.println(": Time not yet set by NTP");
+  }
+
   delay(1000);
 }
 

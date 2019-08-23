@@ -12,8 +12,7 @@
 /*
 **  Network variables...
 */
-// NETWORK: Static IP and WIFI details...
-IPAddress ip(192, 168, 129, 201);  // make sure IP is *outside* of DHCP pool range
+IPAddress ip(192, 168, 129, STOP_LIGHT_IP_LAST_FIELD);  // make sure IP is *outside* of DHCP pool range
 IPAddress gateway(192, 168, 129, 254);
 IPAddress subnet(255, 255, 255, 0);
 IPAddress DNS(192, 168, 129, 254);

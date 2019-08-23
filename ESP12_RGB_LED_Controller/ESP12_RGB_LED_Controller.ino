@@ -1,24 +1,20 @@
 
-// For reference (pin mapping for ESP8266-12E):
-// D0/GPIO16      = 16;
-// D1/GPIO5       = 5;
-// D2/GPIO4       = 4;
-// D3/GPIO0       = 0;
-
-// D4/GPIO2       = 2;
-
-// D5/GPIO14      = 14;
-// D6/GPIO12      = 12;
-// D7/GPIO13      = 13;
-// D8/GPIO15      = 15;
+static const uint8_t D0   = 16;
+static const uint8_t D1   = 5;
+static const uint8_t D2   = 4;
+static const uint8_t D3   = 0;
+static const uint8_t D4   = 2;
+static const uint8_t D5   = 14;
+static const uint8_t D6   = 12;
+static const uint8_t D7   = 13;
+static const uint8_t D8   = 15;
+static const uint8_t D9   = 3;
+static const uint8_t D10  = 1;
 
 // Pin mapping for the first string of lights. Pins D5 - D7
-#define BLUE_LED_OUT      15
-#define RED_LED_OUT       12
-#define GREEN_LED_OUT     14
-
-#define MOTION_DETECTED_LED  16
-#define PIR_IN  5
+#define BLUE_LED_OUT      D8
+#define RED_LED_OUT       D6
+#define GREEN_LED_OUT     D5
 
 #define FADESPEED 3     // make this higher to slow down
 
@@ -26,16 +22,14 @@ typedef enum {
     blue_to_violet, violet_to_red, red_to_yellow, yellow_to_green, green_to_teal, teal_to_blue
 } LED_Fade_States_t;
 
-const int maxBrightness = 1024;
+const int maxBrightness = 1023;
 //int maxBrightness = 500;
 const int minBrightness = 0;
 
-// Status variables
-// Temporary holding for current values
-int currentR = 0;
-int currentG = 0;
-int currentB = 0;
-
+// Vars for holding LED current values and current fade state
+int currentR;
+int currentG;
+int currentB;
 LED_Fade_States_t fade_state;
 
 void setup() 
@@ -47,17 +41,20 @@ void setup()
   pinMode( BLUE_LED_OUT, OUTPUT );
   pinMode( RED_LED_OUT, OUTPUT );
   pinMode( GREEN_LED_OUT, OUTPUT );
-  pinMode( MOTION_DETECTED_LED, OUTPUT );
-
-  digitalWrite(MOTION_DETECTED_LED, HIGH);   // turn the LED on (HIGH is the voltage level)
-  delay(200);                       // wait for a second
-  digitalWrite(MOTION_DETECTED_LED, LOW);    // turn the LED off by making the voltage LOW
-  delay(200);                       // wait for a second
+  pinMode(LED_BUILTIN, OUTPUT);
 
   currentR = minBrightness;
   currentG = minBrightness;
   currentB = maxBrightness;
+  analogWrite(RED_LED_OUT, currentR);
+  analogWrite(BLUE_LED_OUT, currentB);
+  analogWrite(GREEN_LED_OUT, currentG);
   fade_state = blue_to_violet;
+
+  digitalWrite(LED_BUILTIN, HIGH);   // turn the LED on (HIGH is the voltage level)
+  delay(200);                       // wait for a second
+  digitalWrite(LED_BUILTIN, LOW);    // turn the LED off by making the voltage LOW
+
 }
 
 void fadeLEDs()
@@ -129,11 +126,8 @@ void fadeLEDs()
 //  Serial.print(", ");
 //  Serial.println(currentB);
 }
+
 void loop() {
   fadeLEDs();
   delay(FADESPEED);
-//  digitalWrite(MOTION_DETECTED_LED, HIGH);   // turn the LED on (HIGH is the voltage level)
-//  delay(20);                       // wait for a second
-//  digitalWrite(MOTION_DETECTED_LED, LOW);    // turn the LED off by making the voltage LOW
-
 }

@@ -6,13 +6,12 @@
 #include <ESP8266WebServer.h>
 #include <ESP8266mDNS.h>
 
-#include "/home/suzi/src/defs/sierra_wifi_defs.h"
+#include "../../defs/sierra_wifi_defs.h"
 
 /*
 **  Network variables...
 */
-// NETWORK: Static IP and WIFI details...
-IPAddress ip(192, 168, 129, 200);  // make sure IP is *outside* of DHCP pool range
+IPAddress ip(192, 168, 129, GARAGE_LIGHT_IP_LAST_FIELD);  // make sure IP is *outside* of DHCP pool range
 IPAddress gateway(192, 168, 129, 254);
 IPAddress subnet(255, 255, 255, 0);
 IPAddress DNS(192, 168, 129, 254);
@@ -25,7 +24,7 @@ WiFiServer server(server_port);
 // Variable to store the HTTP request
 String header;
 
- #define RELAY 0 // relay connected to  GPIO0
+#define RELAY 0 // relay connected to  GPIO0
 
 void wifi_init()
 {
@@ -64,6 +63,8 @@ void setup()
  
   wifi_init();
  
+  WiFi.setSleepMode(WIFI_NONE_SLEEP);
+
   // Start the server
   server.begin();
   Serial.println("Server started");

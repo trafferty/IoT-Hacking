@@ -40,6 +40,8 @@ tmElements_t tmStart2;
 tmElements_t tmEnd1;
 tmElements_t tmEnd2;
 
+uint8_t NTPTimeSet;
+
 void setup()
 {
   Serial.begin(9600);

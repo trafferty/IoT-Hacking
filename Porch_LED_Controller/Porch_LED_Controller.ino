@@ -2,7 +2,7 @@
 #include <ESP8266WiFi.h>
 #include <WiFiUdp.h>
 
-#include "/home/suzi/src/sketches/defs/sierra_wifi_defs.h"
+#include "../../defs/sierra_wifi_defs.h"
 
 // forward declarations...
 void wifi_init();
@@ -29,18 +29,8 @@ tmElements_t tmStart1;
 tmElements_t tmStart2;
 tmElements_t tmEnd1;
 tmElements_t tmEnd2;
-
-static const uint8_t D0   = 16;
-static const uint8_t D1   = 5;
-static const uint8_t D2   = 4;
-static const uint8_t D3   = 0;
-static const uint8_t D4   = 2;
-static const uint8_t D5   = 14;
-static const uint8_t D6   = 12;
-static const uint8_t D7   = 13;
-static const uint8_t D8   = 15;
-static const uint8_t D9   = 3;
-static const uint8_t D10  = 1;
+tmElements_t tmMotionAlertStart;
+tmElements_t tmMotionAlertEnd;
 
 // Pin mapping for the first string of lights. Pins D5 - D7
 #define BLUE_LED_OUT         D8
@@ -101,10 +91,8 @@ void setup()
   fade_state = blue_to_violet;
   run_state  = state_idle;
 
-  analogWrite(RED_LED_OUT, currentR);
-  analogWrite(GREEN_LED_OUT, currentG);
-  analogWrite(BLUE_LED_OUT, currentB);
-
+  allLEDsOff();
+  
   // setup start/end time structs for scheduler
   tmStart1.Second = 0;
   tmStart1.Minute = 0;
@@ -113,11 +101,17 @@ void setup()
   tmEnd1.Minute = 0;
   tmEnd1.Hour   = 23;   // 11:00pm
   tmStart2.Second = 0;
-  tmStart2.Minute = 0;
-  tmStart2.Hour   = 6;  // 6:00am
+  tmStart2.Minute = 15;
+  tmStart2.Hour   = 6;  // 6:15am
   tmEnd2.Second = 0;
   tmEnd2.Minute = 45;
-  tmEnd2.Hour   = 6;    // 6:45am
+  tmEnd2.Hour   = 8;    // 6:45am
+  tmMotionAlertStart.Second = 1;
+  tmMotionAlertStart.Minute = 0;
+  tmMotionAlertStart.Hour   = 0;  // 12:00am
+  tmMotionAlertEnd.Second = 0;
+  tmMotionAlertEnd.Minute = 0;
+  tmMotionAlertEnd.Hour   = 6;    // 6:00am
 
   digitalWrite(MOTION_DETECTED_LED, HIGH);   // turn the LED on (HIGH is the voltage level)
   delay(200);                       // wait for a second
@@ -203,7 +197,9 @@ void allLEDsValue(int value)
 
 void allLEDsOff()
 {
-  allLEDsValue(minBrightness);
+  digitalWrite(RED_LED_OUT, LOW);
+  digitalWrite(GREEN_LED_OUT, LOW);
+  digitalWrite(BLUE_LED_OUT, LOW);
 }
 
 void allLEDsOn()
@@ -213,24 +209,29 @@ void allLEDsOn()
 
 void loop() 
 {
-  if (timeStatus() == timeNotSet)
+  // make sure the rest of the scheduling time struct fields are set with proper year, month, day
+  tmStart1.Year = tmEnd1.Year = tmStart2.Year = tmEnd2.Year = \
+      tmMotionAlertStart.Year = tmMotionAlertEnd.Year = year() - 1970;
+  tmStart1.Month = tmEnd1.Month = tmStart2.Month = tmEnd2.Month = \
+      tmMotionAlertStart.Month = tmMotionAlertEnd.Month = month();
+  tmStart1.Day = tmEnd1.Day = tmStart2.Day = tmEnd2.Day = \
+       tmMotionAlertStart.Day = tmMotionAlertEnd.Day= day();
+
+  time_t start1_time = makeTime(tmStart1);
+  time_t end1_time = makeTime(tmEnd1);
+  time_t start2_time = makeTime(tmStart2);
+  time_t end2_time = makeTime(tmEnd2);
+  time_t motionAlertStart_time = makeTime(tmMotionAlertStart);
+  time_t motionAlertEnd_time = makeTime(tmMotionAlertEnd);
+  time_t now_time = now();
+
+  if (timeStatus() != timeNotSet)
   {
     if (!NTPTimeSet)
     {
       setSyncInterval(3600);
       NTPTimeSet = true;
     }
-
-    // make sure the rest of the scheduling time struct fields are set with proper year, month, day
-    tmStart1.Year = tmEnd1.Year = tmStart2.Year = tmEnd2.Year = year() - 1970;
-    tmStart1.Month = tmEnd1.Month = tmStart2.Month = tmEnd2.Month = month();
-    tmStart1.Day = tmEnd1.Day = tmStart2.Day = tmEnd2.Day = day();
-
-    time_t start1_time = makeTime(tmStart1);
-    time_t end1_time = makeTime(tmEnd1);
-    time_t start2_time = makeTime(tmStart2);
-    time_t end2_time = makeTime(tmEnd2);
-    time_t now_time = now();
 
     if ( ((now_time >= start1_time) && (now_time <= end1_time)) ||
          ((now_time >= start2_time) && (now_time <= end2_time)) ) 
@@ -265,10 +266,13 @@ void loop()
   }
   else
   {
-    NTPTimeSet = false;
-    setSyncInterval(5);
+    if (NTPTimeSet)
+    {
+      setSyncInterval(5);
+      NTPTimeSet = false;
+    }
 
-    Serial.print("Time not yet set by NTP");
+    Serial.println("Time not yet set by NTP");
     allLEDsValue(100);
     delay(1000);
     allLEDsValue(minBrightness);
@@ -276,15 +280,25 @@ void loop()
 
   if (digitalRead(PIR_IN) == HIGH)
   {
+    Serial.println("Motion detected!");
     digitalWrite(MOTION_DETECTED_LED, HIGH);
-    allLEDsOn();
 
-    delay(500);
-
-    digitalWrite(MOTION_DETECTED_LED, LOW);
-    allLEDsOff();
+    if (timeStatus() != timeNotSet)
+    {
+      if((run_state == state_idle) && ((now_time >= motionAlertStart_time) && (now_time <= motionAlertEnd_time)))
+        allLEDsOn();
+    }
   }
+  else
+  {
+    digitalWrite(MOTION_DETECTED_LED, LOW);
 
+    if (timeStatus() != timeNotSet)
+    {
+      if((run_state == state_idle) && ((now_time >= motionAlertStart_time) && (now_time <= motionAlertEnd_time)))
+        allLEDsOff();
+    }
+  }
 
   delay(FADESPEED);
 }
@@ -347,8 +361,8 @@ const int NTP_PACKET_SIZE = 48; // NTP time is in the first 48 bytes of message
 byte packetBuffer[NTP_PACKET_SIZE]; //buffer to hold incoming & outgoing packets
 
 // NTP Servers:
-static const char ntpServerName[] = "us.pool.ntp.org";
-//static const char ntpServerName[] = "time.nist.gov";
+//static const char ntpServerName[] = "us.pool.ntp.org";
+static const char ntpServerName[] = "time.nist.gov";
 const int timeZone = -5;     // Central Standard Time
 
 time_t getNtpTime()

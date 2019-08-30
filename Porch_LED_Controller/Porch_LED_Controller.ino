@@ -2,7 +2,7 @@
 #include <ESP8266WiFi.h>
 #include <WiFiUdp.h>
 
-#include "../../defs/sierra_wifi_defs.h"
+#include "/home/suzi/src/sketches/defs/sierra_wifi_defs.h"
 
 // forward declarations...
 void wifi_init();

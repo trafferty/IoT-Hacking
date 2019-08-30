@@ -16,6 +16,8 @@ IPAddress ip(192, 168, 129, STOP_LIGHT_IP_LAST_FIELD);  // make sure IP is *outs
 IPAddress gateway(192, 168, 129, 254);
 IPAddress subnet(255, 255, 255, 0);
 IPAddress DNS(192, 168, 129, 254);
+const char* ssid     = SSID;
+const char* password = WIFI_PW;
 int server_port = 80;
 
 // Set web server port number
@@ -28,11 +30,11 @@ String header;
 */
 // GPIO assignments
 const int out_HB_LED = LED_BUILTIN;
-const int out_RedLight = 4;
-const int out_OrangeLight = 5;
-const int out_BlueLight = 12;
-const int out_GreenLight = 13;
-const int out_Alarm = 14;
+const int out_RedLight = D1;
+const int out_OrangeLight = D2;
+const int out_BlueLight = D6;
+const int out_GreenLight = D7;
+const int out_Alarm = D5;
 
 const char RED = 0;
 const char ORANGE = 1;
@@ -55,33 +57,6 @@ String IpAddress2String(const IPAddress& ipAddress)
   String(ipAddress[1]) + String(".") +\
   String(ipAddress[2]) + String(".") +\
   String(ipAddress[3])  ; 
-}
-
-void wifi_init()
-{
-  Serial.print("Setting up network with static IP: ");
-  Serial.println(IpAddress2String(ip));
-  WiFi.config(ip, gateway, subnet, DNS);
-  delay(100);
-  WiFi.mode(WIFI_STA);
-  WiFi.begin(ssid, password);
-  // Connect to Wi-Fi network with SSID and password
-  Serial.print("Connecting to ");
-  Serial.println(ssid);
-  while (WiFi.status() != WL_CONNECTED) {
-      Serial.print(".");
-      delay(200);
-  }
-  Serial.println();
-  while (WiFi.waitForConnectResult() != WL_CONNECTED) {
-    Serial.println("Fail connecting");
-    delay(5000);
-    ESP.restart();
-  }
-  Serial.println("");
-  Serial.println("WiFi connected.");
-  Serial.println("IP address: ");
-  Serial.println(WiFi.localIP());
 }
 
 void handleNotFound() {
@@ -157,37 +132,38 @@ void handle_LED_setState(uint8_t led, uint8_t state)
 }
 
 void setup(void) {
-  Serial.begin(115200);
-  wifi_init();
+  Serial.begin( 57600 );
 
-  if (MDNS.begin("esp8266")) {
-    Serial.println("MDNS responder started");
-  }
-
-  Serial.println("Configuring GPIO and setting to low");
+  Serial.println("Configuring GPIO and setting to high");
   // Initialize the GPIO variables as outputs
-
   pinMode(out_HB_LED, OUTPUT);
   pinMode(out_RedLight, OUTPUT);
   pinMode(out_OrangeLight, OUTPUT);
   pinMode(out_BlueLight, OUTPUT);
   pinMode(out_GreenLight, OUTPUT);
   pinMode(out_Alarm, OUTPUT);
-  // Set outputs to LOW
-  digitalWrite(out_RedLight, LOW);
-  red_state = LOW;
-  digitalWrite(out_OrangeLight, LOW);
-  orange_state = LOW;
-  digitalWrite(out_BlueLight, LOW);
-  blue_state = LOW;
-  digitalWrite(out_GreenLight, LOW);
-  green_state = LOW;
-  digitalWrite(out_Alarm, LOW);
-
-  // blink the heartbeat LED a few times to indicate we're starting up
-  for (int i=0; i<6; ++i) {
+  // Set outputs to HIGH
+  digitalWrite(out_RedLight, HIGH);
+  red_state = HIGH;
+  digitalWrite(out_OrangeLight, HIGH);
+  orange_state = HIGH;
+  digitalWrite(out_BlueLight, HIGH);
+  blue_state = HIGH;
+  digitalWrite(out_GreenLight, HIGH);
+  green_state = HIGH;
+  digitalWrite(out_Alarm, HIGH);
+  alarm_state = HIGH;
+  
+  // blink the heartbeat LED a few times to indicate we're starting up wifi
+  for (int i=0; i<3; ++i) {
     digitalWrite(out_HB_LED, !digitalRead(out_HB_LED));
     delay(100);
+  }
+
+  wifi_init();
+
+  if (MDNS.begin("esp8266")) {
+    Serial.println("MDNS responder started");
   }
 
   // setup all the server handlers
@@ -198,47 +174,47 @@ void setup(void) {
   });
   
   server.on("/red_on", []() {
-    handle_LED_setState(RED, HIGH);
+    handle_LED_setState(RED, LOW);
     server.send(200, "text/html", SendHTML(red_state,orange_state,green_state,blue_state,alarm_state));
   });
   server.on("/red_off", []() {
-    handle_LED_setState(RED, LOW);
+    handle_LED_setState(RED, HIGH);
     server.send(200, "text/html", SendHTML(red_state,orange_state,green_state,blue_state,alarm_state));
   });
 
   server.on("/orange_on", []() {
-    handle_LED_setState(ORANGE, HIGH);
+    handle_LED_setState(ORANGE, LOW);
     server.send(200, "text/html", SendHTML(red_state,orange_state,green_state,blue_state,alarm_state));
   });
   server.on("/orange_off", []() {
-    handle_LED_setState(ORANGE, LOW);
+    handle_LED_setState(ORANGE, HIGH);
     server.send(200, "text/html", SendHTML(red_state,orange_state,green_state,blue_state,alarm_state));
   });
 
   server.on("/green_on", []() {
-    handle_LED_setState(GREEN, HIGH);
+    handle_LED_setState(GREEN, LOW);
     server.send(200, "text/html", SendHTML(red_state,orange_state,green_state,blue_state,alarm_state));
   });
   server.on("/green_off", []() {
-    handle_LED_setState(GREEN, LOW);
+    handle_LED_setState(GREEN, HIGH);
     server.send(200, "text/html", SendHTML(red_state,orange_state,green_state,blue_state,alarm_state));
   });
 
   server.on("/blue_on", []() {
-    handle_LED_setState(BLUE, HIGH);
+    handle_LED_setState(BLUE, LOW);
     server.send(200, "text/html", SendHTML(red_state,orange_state,green_state,blue_state,alarm_state));
   });
   server.on("/blue_off", []() {
-    handle_LED_setState(BLUE, LOW);
+    handle_LED_setState(BLUE, HIGH);
     server.send(200, "text/html", SendHTML(red_state,orange_state,green_state,blue_state,alarm_state));
   });
 
   server.on("/alarm_on", []() {
-    handle_LED_setState(ALARM, HIGH);
+    handle_LED_setState(ALARM, LOW);
     server.send(200, "text/html", SendHTML(red_state,orange_state,green_state,blue_state,alarm_state));
   });
   server.on("/alarm_off", []() {
-    handle_LED_setState(ALARM, LOW);
+    handle_LED_setState(ALARM, HIGH);
     server.send(200, "text/html", SendHTML(red_state,orange_state,green_state,blue_state,alarm_state));
   });
 
@@ -246,6 +222,13 @@ void setup(void) {
 
    // Startup server
   server.begin();
+
+  // blink the heartbeat LED a few times to indicate we're ready
+  for (int i=0; i<5; ++i) {
+    digitalWrite(out_HB_LED, !digitalRead(out_HB_LED));
+    delay(100);
+  }
+
   Serial.println("HTTP server started");
 }
 
@@ -277,7 +260,7 @@ String SendHTML(
   ptr +="<title>LED Control</title>\n";
   ptr +="<style>html { font-family: Helvetica; display: inline-block; margin: 0px auto; text-align: center;}\n";
   ptr +="body{margin-top: 50px;} h1 {color: #444444;margin: 50px auto 30px;} h3 {color: #444444;margin-bottom: 50px;}\n";
-  ptr +=".button {display: block;width: 80px;background-color: #1abc9c;border: none;color: white;padding: 13px 30px;text-decoration: none;font-size: 25px;margin: 0px auto 35px;cursor: pointer;border-radius: 4px;}\n";
+  ptr +=".button {display: block;width: 80px;background-color: #1abc9c;border: none;color: white;padding: 8px 20px;text-decoration: none;font-size: 25px;margin: 0px auto 25px;cursor: pointer;border-radius: 4px;}\n";
   ptr +=".button-on {background-color: #1abc9c;}\n";
   ptr +=".button-on:active {background-color: #16a085;}\n";
   ptr +=".button-off {background-color: #34495e;}\n";
@@ -290,31 +273,59 @@ String SendHTML(
   //ptr +="<h3>Using Access Point(AP) Mode</h3>\n";
   
    if( red_state)
-    {ptr +="<p>Red Status: ON</p><a class=\"button button-off\" href=\"/red_off\">OFF</a>\n";}
-  else
     {ptr +="<p>Red Status: OFF</p><a class=\"button button-on\" href=\"/red_on\">ON</a>\n";}
+  else
+    {ptr +="<p>Red Status: ON</p><a class=\"button button-off\" href=\"/red_off\">OFF</a>\n";}
 
   if (orange_state)
-    {ptr +="<p>Orange Status: ON</p><a class=\"button button-off\" href=\"/orange_off\">OFF</a>\n";}
-  else
     {ptr +="<p>Orange Status: OFF</p><a class=\"button button-on\" href=\"/orange_on\">ON</a>\n";}
+  else
+    {ptr +="<p>Orange Status: ON</p><a class=\"button button-off\" href=\"/orange_off\">OFF</a>\n";}
 
   if (green_state)
-    {ptr +="<p>Green Status: ON</p><a class=\"button button-off\" href=\"/green_off\">OFF</a>\n";}
-  else
     {ptr +="<p>Green Status: OFF</p><a class=\"button button-on\" href=\"/green_on\">ON</a>\n";}
+  else
+    {ptr +="<p>Green Status: ON</p><a class=\"button button-off\" href=\"/green_off\">OFF</a>\n";}
 
   if (blue_state)
-    {ptr +="<p>Blue Status: ON</p><a class=\"button button-off\" href=\"/blue_off\">OFF</a>\n";}
-  else
     {ptr +="<p>Blue Status: OFF</p><a class=\"button button-on\" href=\"/blue_on\">ON</a>\n";}
+  else
+    {ptr +="<p>Blue Status: ON</p><a class=\"button button-off\" href=\"/blue_off\">OFF</a>\n";}
 
   if (alarm_state)
-    {ptr +="<p>Alarm Status: ON</p><a class=\"button button-off\" href=\"/alarm_off\">OFF</a>\n";}
-  else
     {ptr +="<p>Alarm Status: OFF</p><a class=\"button button-on\" href=\"/alarm_on\">ON</a>\n";}
+  else
+    {ptr +="<p>Alarm Status: ON</p><a class=\"button button-off\" href=\"/alarm_off\">OFF</a>\n";}
 
   ptr +="</body>\n";
   ptr +="</html>\n";
   return ptr;
+}
+
+/* ----- Util functions ----- */
+void wifi_init()
+{
+  Serial.print("Setting up network with static IP: ");
+  //Serial.println(ip);
+  WiFi.config(ip, gateway, subnet, DNS);
+  delay(100);
+  WiFi.mode(WIFI_STA);
+  WiFi.begin(ssid, password);
+  // Connect to Wi-Fi network with SSID and password
+  Serial.print("Connecting to ");
+  Serial.println(ssid);
+  while (WiFi.status() != WL_CONNECTED) {
+      Serial.print(".");
+      delay(200);
+  }
+  Serial.println();
+  while (WiFi.waitForConnectResult() != WL_CONNECTED) {
+    Serial.println("Fail connecting");
+    delay(5000);
+    ESP.restart();
+  }
+  Serial.println("");
+  Serial.println("WiFi connected.");
+  Serial.println("IP address: ");
+  Serial.println(WiFi.localIP());
 }

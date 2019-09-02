@@ -29,18 +29,21 @@ String header;
 **  I/O variables...
 */
 // GPIO assignments
-const int out_HB_LED = LED_BUILTIN;
+//const int out_HB_LED = LED_BUILTIN;
+const int out_HB_LED = D8;
 const int out_RedLight = D1;
+const int out_RedFlash = D0;
 const int out_OrangeLight = D2;
+const int out_OrangeFlash = D3;
 const int out_BlueLight = D6;
 const int out_GreenLight = D7;
+const int out_GreenFlash = D4;
 const int out_Alarm = D5;
 
-const char RED = 0;
-const char ORANGE = 1;
-const char GREEN = 2;
-const char BLUE = 3;
-const char ALARM = 4;
+typedef enum {
+    RED, RED_FLASH, ORANGE, ORANGE_FLASH, GREEN, GREEN_FLASH, BLUE, ALARM
+} LED_OUT_t;
+
 
 uint8_t red_state;
 uint8_t orange_state;
@@ -86,7 +89,7 @@ void blinkLED(int pin, int delay_ms, int cnt)
   }
 }
 
-void handle_LED_setState(uint8_t led, uint8_t state)
+void handle_LED_setState(LED_OUT_t led, uint8_t state)
 {
   switch (led)
   {
@@ -97,6 +100,13 @@ void handle_LED_setState(uint8_t led, uint8_t state)
       digitalWrite(out_RedLight, state);
       break;
 
+    case RED_FLASH:
+      Serial.print("red flash: ");
+      Serial.println(state);
+      red_state = state;
+      digitalWrite(out_RedFlash, state);
+      break;
+
     case ORANGE:
       Serial.print("orange light: ");
       Serial.println(state);
@@ -104,11 +114,25 @@ void handle_LED_setState(uint8_t led, uint8_t state)
       digitalWrite(out_OrangeLight, state);
       break;
 
+    case ORANGE_FLASH:
+      Serial.print("orange flash: ");
+      Serial.println(state);
+      orange_state = state;
+      digitalWrite(out_OrangeFlash, state);
+      break;
+
     case GREEN:
       Serial.print("green light: ");
       Serial.println(state);
       green_state = state;
       digitalWrite(out_GreenLight, state);
+      break;
+
+    case GREEN_FLASH:
+      Serial.print("green flash: ");
+      Serial.println(state);
+      green_state = state;
+      digitalWrite(out_GreenFlash, state);
       break;
 
     case BLUE:
@@ -138,18 +162,24 @@ void setup(void) {
   // Initialize the GPIO variables as outputs
   pinMode(out_HB_LED, OUTPUT);
   pinMode(out_RedLight, OUTPUT);
+  pinMode(out_RedFlash, OUTPUT);
   pinMode(out_OrangeLight, OUTPUT);
+  pinMode(out_OrangeFlash, OUTPUT);
   pinMode(out_BlueLight, OUTPUT);
   pinMode(out_GreenLight, OUTPUT);
+  pinMode(out_GreenFlash, OUTPUT);
   pinMode(out_Alarm, OUTPUT);
   // Set outputs to HIGH
   digitalWrite(out_RedLight, HIGH);
+  digitalWrite(out_RedFlash, HIGH);
   red_state = HIGH;
   digitalWrite(out_OrangeLight, HIGH);
+  digitalWrite(out_OrangeFlash, HIGH);
   orange_state = HIGH;
   digitalWrite(out_BlueLight, HIGH);
   blue_state = HIGH;
   digitalWrite(out_GreenLight, HIGH);
+  digitalWrite(out_GreenFlash, HIGH);
   green_state = HIGH;
   digitalWrite(out_Alarm, HIGH);
   alarm_state = HIGH;
@@ -177,8 +207,13 @@ void setup(void) {
     handle_LED_setState(RED, LOW);
     server.send(200, "text/html", SendHTML(red_state,orange_state,green_state,blue_state,alarm_state));
   });
+  server.on("/red_flash", []() {
+    handle_LED_setState(RED_FLASH, LOW);
+    server.send(200, "text/html", SendHTML(red_state,orange_state,green_state,blue_state,alarm_state));
+  });
   server.on("/red_off", []() {
     handle_LED_setState(RED, HIGH);
+    handle_LED_setState(RED_FLASH, HIGH);
     server.send(200, "text/html", SendHTML(red_state,orange_state,green_state,blue_state,alarm_state));
   });
 
@@ -186,8 +221,13 @@ void setup(void) {
     handle_LED_setState(ORANGE, LOW);
     server.send(200, "text/html", SendHTML(red_state,orange_state,green_state,blue_state,alarm_state));
   });
+  server.on("/orange_flash", []() {
+    handle_LED_setState(ORANGE_FLASH, LOW);
+    server.send(200, "text/html", SendHTML(red_state,orange_state,green_state,blue_state,alarm_state));
+  });
   server.on("/orange_off", []() {
     handle_LED_setState(ORANGE, HIGH);
+    handle_LED_setState(ORANGE_FLASH, HIGH);
     server.send(200, "text/html", SendHTML(red_state,orange_state,green_state,blue_state,alarm_state));
   });
 
@@ -195,8 +235,13 @@ void setup(void) {
     handle_LED_setState(GREEN, LOW);
     server.send(200, "text/html", SendHTML(red_state,orange_state,green_state,blue_state,alarm_state));
   });
+  server.on("/green_flash", []() {
+    handle_LED_setState(GREEN_FLASH, LOW);
+    server.send(200, "text/html", SendHTML(red_state,orange_state,green_state,blue_state,alarm_state));
+  });
   server.on("/green_off", []() {
     handle_LED_setState(GREEN, HIGH);
+    handle_LED_setState(GREEN_FLASH, HIGH);
     server.send(200, "text/html", SendHTML(red_state,orange_state,green_state,blue_state,alarm_state));
   });
 
@@ -260,7 +305,7 @@ String SendHTML(
   ptr +="<title>LED Control</title>\n";
   ptr +="<style>html { font-family: Helvetica; display: inline-block; margin: 0px auto; text-align: center;}\n";
   ptr +="body{margin-top: 50px;} h1 {color: #444444;margin: 50px auto 30px;} h3 {color: #444444;margin-bottom: 50px;}\n";
-  ptr +=".button {display: block;width: 80px;background-color: #1abc9c;border: none;color: white;padding: 8px 20px;text-decoration: none;font-size: 25px;margin: 0px auto 25px;cursor: pointer;border-radius: 4px;}\n";
+  ptr +=".button {display: inline-block;width: 80px;background-color: #1abc9c;border: none;color: white;padding: 8px 20px;text-decoration: none;font-size: 25px;margin: 0px auto 25px;cursor: pointer;border-radius: 4px;}\n";
   ptr +=".button-on {background-color: #1abc9c;}\n";
   ptr +=".button-on:active {background-color: #16a085;}\n";
   ptr +=".button-off {background-color: #34495e;}\n";
@@ -272,30 +317,41 @@ String SendHTML(
   ptr +="<h1>Stop Light Server</h1>\n";
   //ptr +="<h3>Using Access Point(AP) Mode</h3>\n";
   
-   if( red_state)
-    {ptr +="<p>Red Status: OFF</p><a class=\"button button-on\" href=\"/red_on\">ON</a>\n";}
-  else
-    {ptr +="<p>Red Status: ON</p><a class=\"button button-off\" href=\"/red_off\">OFF</a>\n";}
+  if( red_state) {
+    ptr += "<p>Red Status: OFF</p>\n";
+    ptr += "<div id=\"container\"><a class=\"button button-on\" href=\"/red_on\">ON</a>\n";
+    ptr += "<a class=\"button button-on\" href=\"/red_flash\">FLASH</a></div>\n";
+  } else {
+    ptr +="<p>Red Status: ON</p><a class=\"button button-off\" href=\"/red_off\">OFF</a>\n";
+  }
 
-  if (orange_state)
-    {ptr +="<p>Orange Status: OFF</p><a class=\"button button-on\" href=\"/orange_on\">ON</a>\n";}
-  else
-    {ptr +="<p>Orange Status: ON</p><a class=\"button button-off\" href=\"/orange_off\">OFF</a>\n";}
+  if (orange_state) {
+    ptr += "<p>Orange Status: OFF</p>\n";
+    ptr += "<div id=\"container\"><a class=\"button button-on\" href=\"/orange_on\">ON</a>\n";
+    ptr += "<a class=\"button button-on\" href=\"/orange_flash\">FLASH</a></div>\n";
+  } else {
+    ptr +="<p>Orange Status: ON</p><a class=\"button button-off\" href=\"/orange_off\">OFF</a>\n";
+  }
 
-  if (green_state)
-    {ptr +="<p>Green Status: OFF</p><a class=\"button button-on\" href=\"/green_on\">ON</a>\n";}
-  else
-    {ptr +="<p>Green Status: ON</p><a class=\"button button-off\" href=\"/green_off\">OFF</a>\n";}
+  if (green_state) {
+    ptr +="<p>Green Status: OFF</p>\n";
+    ptr += "<div id=\"container\"><a class=\"button button-on\" href=\"/green_on\">ON</a>\n";
+    ptr += "<a class=\"button button-on\" href=\"/green_flash\">FLASH</a></div>\n";
+  } else {
+    ptr +="<p>Green Status: ON</p><a class=\"button button-off\" href=\"/green_off\">OFF</a>\n";
+  }
 
-  if (blue_state)
-    {ptr +="<p>Blue Status: OFF</p><a class=\"button button-on\" href=\"/blue_on\">ON</a>\n";}
-  else
-    {ptr +="<p>Blue Status: ON</p><a class=\"button button-off\" href=\"/blue_off\">OFF</a>\n";}
+  if (blue_state) {
+    ptr +="<p>Blue Status: OFF</p><a class=\"button button-on\" href=\"/blue_on\">ON</a>\n";
+  } else {
+    ptr +="<p>Blue Status: ON</p><a class=\"button button-off\" href=\"/blue_off\">OFF</a>\n";
+  }
 
-  if (alarm_state)
-    {ptr +="<p>Alarm Status: OFF</p><a class=\"button button-on\" href=\"/alarm_on\">ON</a>\n";}
-  else
-    {ptr +="<p>Alarm Status: ON</p><a class=\"button button-off\" href=\"/alarm_off\">OFF</a>\n";}
+  if (alarm_state) {
+    ptr +="<p>Alarm Status: OFF</p><a class=\"button button-on\" href=\"/alarm_on\">ON</a>\n";
+  } else {
+    ptr +="<p>Alarm Status: ON</p><a class=\"button button-off\" href=\"/alarm_off\">OFF</a>\n";
+  }
 
   ptr +="</body>\n";
   ptr +="</html>\n";

@@ -41,7 +41,7 @@ const int out_GreenFlash = D4;
 const int out_Alarm = D5;
 
 typedef enum {
-    RED, RED_FLASH, ORANGE, ORANGE_FLASH, GREEN, GREEN_FLASH, BLUE, ALARM
+    RED, RED_FLASH, ORANGE, ORANGE_FLASH, GREEN, GREEN_FLASH, BLUE, ALARM, LED_END
 } LED_OUT_t;
 
 
@@ -262,6 +262,13 @@ void setup(void) {
     handle_LED_setState(ALARM, HIGH);
     server.send(200, "text/html", SendHTML(red_state,orange_state,green_state,blue_state,alarm_state));
   });
+
+  server.on("/all_off", []() {
+    for (int led=RED; led<LED_END; ++led)
+      handle_LED_setState(led, HIGH);
+    server.send(200, "text/html", SendHTML(red_state,orange_state,green_state,blue_state,alarm_state));
+  });
+
 
   prevMillis = millis();
 

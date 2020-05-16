@@ -8,7 +8,7 @@
 #include <ESP8266mDNS.h>
 
 #include "/home/suzi/src/sketches/defs/sierra_wifi_defs.h"
-
+#define version_str "v1.0.0-20200516"
 /*
 **  Network variables...
 */
@@ -315,7 +315,9 @@ String SendHTML(
   ptr +="</head>\n";
   ptr +="<body>\n";
   ptr +="<h1>Stop Light Server</h1>\n";
-  //ptr +="<h3>Using Access Point(AP) Mode</h3>\n";
+  ptr +="<h6>version: ";
+  ptr +=version_str;
+  ptr +="</h6>\n";
   
   if( red_state) {
     ptr += "<p>Red Status: OFF</p>\n";

@@ -1,3 +1,12 @@
+/*
+  This is just a basic RGB LED controller.
+  No Network, no WiFi.  Just starts up and fades
+  through RGB colors.
+
+  This was used on Sierra porch light when I had it hooked
+  up to a timer.  It just came on at certain times and did
+  the fade routine.  Simple.
+*/
 
 // Pin mapping for the first string of lights. Pins D5 - D7
 #define BLUE_LED_OUT      D8

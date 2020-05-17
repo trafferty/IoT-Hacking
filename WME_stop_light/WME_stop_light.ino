@@ -1,14 +1,12 @@
-/*********
-*********/
 
-// Load Wi-Fi library
 #include <ESP8266WiFi.h>
 #include <WiFiClient.h>
 #include <ESP8266WebServer.h>
 #include <ESP8266mDNS.h>
+#include <ArduinoOTA.h>
 
 #include "/home/suzi/src/sketches/defs/sierra_wifi_defs.h"
-#define version_str "v1.0.0-20200516"
+#define version_str "v1.0.3-20200516"
 /*
 **  Network variables...
 */
@@ -19,11 +17,10 @@ IPAddress DNS(192, 168, 129, 254);
 const char* ssid     = SSID;
 const char* password = WIFI_PW;
 int server_port = 80;
+String DNS_name = STOP_LIGHT_HOSTNAME;
 
 // Set web server port number
 ESP8266WebServer server(server_port);
-// Variable to store the HTTP request
-String header;
 
 /*
 **  I/O variables...
@@ -54,41 +51,180 @@ uint8_t alarm_state;
 unsigned long prevMillis;
 const unsigned long HB_period_ms = 1000;
 
-String IpAddress2String(const IPAddress& ipAddress)
-{
-  return String(ipAddress[0]) + String(".") +\
-  String(ipAddress[1]) + String(".") +\
-  String(ipAddress[2]) + String(".") +\
-  String(ipAddress[3])  ; 
-}
+void setup(void) {
+  Serial.begin( 57600 );
 
-void handleNotFound() {
-  String message = "File Not Found\n\n";
-  message += "URI: ";
-  message += server.uri();
-  message += "\nMethod: ";
-  message += (server.method() == HTTP_GET) ? "GET" : "POST";
-  message += "\nArguments: ";
-  message += server.args();
-  message += "\n";
-  for (uint8_t i = 0; i < server.args(); i++) {
-    message += " " + server.argName(i) + ": " + server.arg(i) + "\n";
+  Serial.println("Configuring GPIO and setting to high");
+  // Initialize the GPIO variables as outputs
+  pinMode(out_HB_LED, OUTPUT);
+  pinMode(out_RedLight, OUTPUT);
+  pinMode(out_RedFlash, OUTPUT);
+  pinMode(out_OrangeLight, OUTPUT);
+  pinMode(out_OrangeFlash, OUTPUT);
+  pinMode(out_BlueLight, OUTPUT);
+  pinMode(out_GreenLight, OUTPUT);
+  pinMode(out_GreenFlash, OUTPUT);
+  pinMode(out_Alarm, OUTPUT);
+  // Set outputs to HIGH
+  digitalWrite(out_RedLight, HIGH);
+  digitalWrite(out_RedFlash, HIGH);
+  red_state = HIGH;
+  digitalWrite(out_OrangeLight, HIGH);
+  digitalWrite(out_OrangeFlash, HIGH);
+  orange_state = HIGH;
+  digitalWrite(out_BlueLight, HIGH);
+  blue_state = HIGH;
+  digitalWrite(out_GreenLight, HIGH);
+  digitalWrite(out_GreenFlash, HIGH);
+  green_state = HIGH;
+  digitalWrite(out_Alarm, HIGH);
+  alarm_state = HIGH;
+  
+  // blink the heartbeat LED a few times to indicate we're starting up wifi
+  for (int i=0; i<3; ++i) {
+    digitalWrite(out_HB_LED, !digitalRead(out_HB_LED));
+    delay(100);
   }
-  server.send(404, "text/plain", message);
+
+  wifi_init();
+
+  // setup OTA stuff...
+  ArduinoOTA.setHostname(STOP_LIGHT_HOSTNAME);
+  ArduinoOTA.setPassword(STOP_LIGHT_OTA_PW);
+
+  ArduinoOTA.onStart([]() {
+    Serial.println("OTA Start");
+  });
+  ArduinoOTA.onEnd([]() {
+    Serial.println("\nOTA End");
+  });
+  ArduinoOTA.onProgress([](unsigned int progress, unsigned int total) {
+    Serial.printf("Progress: %u%%\r", (progress / (total / 100)));
+  });
+  ArduinoOTA.onError([](ota_error_t error) {
+    Serial.printf("Error[%u]: ", error);
+    if (error == OTA_AUTH_ERROR) Serial.println("Auth Failed");
+    else if (error == OTA_BEGIN_ERROR) Serial.println("Begin Failed");
+    else if (error == OTA_CONNECT_ERROR) Serial.println("Connect Failed");
+    else if (error == OTA_RECEIVE_ERROR) Serial.println("Receive Failed");
+    else if (error == OTA_END_ERROR) Serial.println("End Failed");
+  });
+  ArduinoOTA.begin();
+  Serial.println("OTA ready");
+
+  // setup DNS handler
+  if (MDNS.begin(DNS_name)) {
+    Serial.println("mDNS responder started. Connect at http:\\\\"+DNS_name+".local");
+  } else {
+    Serial.println("mDNS responder NOT started.");    
+  }
+
+  // setup all the web server handlers
+  server.onNotFound(handleNotFound);
+
+  server.on("/", []() {
+    server.send(200, "text/html", CreateHTML());
+  });
+  
+  server.on("/red_on", []() {
+    handle_LED_setState(RED, LOW);
+    server.send(200, "text/html", CreateHTML());
+  });
+  server.on("/red_flash", []() {
+    handle_LED_setState(RED_FLASH, LOW);
+    server.send(200, "text/html", CreateHTML());
+  });
+  server.on("/red_off", []() {
+    handle_LED_setState(RED, HIGH);
+    handle_LED_setState(RED_FLASH, HIGH);
+    server.send(200, "text/html", CreateHTML());
+  });
+
+  server.on("/orange_on", []() {
+    handle_LED_setState(ORANGE, LOW);
+    server.send(200, "text/html", CreateHTML());
+  });
+  server.on("/orange_flash", []() {
+    handle_LED_setState(ORANGE_FLASH, LOW);
+    server.send(200, "text/html", CreateHTML());
+  });
+  server.on("/orange_off", []() {
+    handle_LED_setState(ORANGE, HIGH);
+    handle_LED_setState(ORANGE_FLASH, HIGH);
+    server.send(200, "text/html", CreateHTML());
+  });
+
+  server.on("/green_on", []() {
+    handle_LED_setState(GREEN, LOW);
+    server.send(200, "text/html", CreateHTML());
+  });
+  server.on("/green_flash", []() {
+    handle_LED_setState(GREEN_FLASH, LOW);
+    server.send(200, "text/html", CreateHTML());
+  });
+  server.on("/green_off", []() {
+    handle_LED_setState(GREEN, HIGH);
+    handle_LED_setState(GREEN_FLASH, HIGH);
+    server.send(200, "text/html", CreateHTML());
+  });
+
+  server.on("/blue_on", []() {
+    handle_LED_setState(BLUE, LOW);
+    server.send(200, "text/html", CreateHTML());
+  });
+  server.on("/blue_off", []() {
+    handle_LED_setState(BLUE, HIGH);
+    server.send(200, "text/html", CreateHTML());
+  });
+
+  server.on("/alarm_on", []() {
+    handle_LED_setState(ALARM, LOW);
+    server.send(200, "text/html", CreateHTML());
+  });
+  server.on("/alarm_off", []() {
+    handle_LED_setState(ALARM, HIGH);
+    server.send(200, "text/html", CreateHTML());
+  });
+
+  server.on("/all_off", []() {
+    for (int led=RED; led<LED_END; ++led)
+      handle_LED_setState((LED_OUT_t)led, HIGH);
+    server.send(200, "text/html", CreateHTML());
+  });
+
+   // Startup server
+  server.begin();
+  Serial.println("HTTP server started");
+
+  // blink the heartbeat LED a few times to indicate we're ready
+  for (int i=0; i<3; ++i) {
+    digitalWrite(out_HB_LED, !digitalRead(out_HB_LED));
+    delay(300);
+  }
+
+  // get timestamp for heartbeat LED
+  prevMillis = millis();
 }
 
-void blinkLED(int pin, int delay_ms, int cnt)
-{
-  for (int i=0; i<cnt; ++i)
+void loop(void) {  
+  ArduinoOTA.handle();
+  
+  // First let's toggle the HB LED if 1000ms has elapsed
+  unsigned long currentMillis = millis();  
+  if (currentMillis - prevMillis >= HB_period_ms)  
   {
-    digitalWrite(pin, LOW); 
-    delay(delay_ms);                      
-    digitalWrite(pin, HIGH);
-    if (i+1<cnt)
-      delay(delay_ms);                      
+    digitalWrite(out_HB_LED, !digitalRead(out_HB_LED));  //if so, change the state of the LED.  Uses a neat trick to change the state
+    prevMillis = currentMillis;  
   }
+
+//  Serial.print("server.uri():");
+//  Serial.println(server.uri());
+
+  server.handleClient();
+  MDNS.update();
 }
 
+/* ----- Local functions ----- */
 void handle_LED_setState(LED_OUT_t led, uint8_t state)
 {
   switch (led)
@@ -155,161 +291,15 @@ void handle_LED_setState(LED_OUT_t led, uint8_t state)
   }
 }
 
-void setup(void) {
-  Serial.begin( 57600 );
-
-  Serial.println("Configuring GPIO and setting to high");
-  // Initialize the GPIO variables as outputs
-  pinMode(out_HB_LED, OUTPUT);
-  pinMode(out_RedLight, OUTPUT);
-  pinMode(out_RedFlash, OUTPUT);
-  pinMode(out_OrangeLight, OUTPUT);
-  pinMode(out_OrangeFlash, OUTPUT);
-  pinMode(out_BlueLight, OUTPUT);
-  pinMode(out_GreenLight, OUTPUT);
-  pinMode(out_GreenFlash, OUTPUT);
-  pinMode(out_Alarm, OUTPUT);
-  // Set outputs to HIGH
-  digitalWrite(out_RedLight, HIGH);
-  digitalWrite(out_RedFlash, HIGH);
-  red_state = HIGH;
-  digitalWrite(out_OrangeLight, HIGH);
-  digitalWrite(out_OrangeFlash, HIGH);
-  orange_state = HIGH;
-  digitalWrite(out_BlueLight, HIGH);
-  blue_state = HIGH;
-  digitalWrite(out_GreenLight, HIGH);
-  digitalWrite(out_GreenFlash, HIGH);
-  green_state = HIGH;
-  digitalWrite(out_Alarm, HIGH);
-  alarm_state = HIGH;
-  
-  // blink the heartbeat LED a few times to indicate we're starting up wifi
-  for (int i=0; i<3; ++i) {
-    digitalWrite(out_HB_LED, !digitalRead(out_HB_LED));
-    delay(100);
-  }
-
-  wifi_init();
-
-  if (MDNS.begin("esp8266")) {
-    Serial.println("MDNS responder started");
-  }
-
-  // setup all the server handlers
-  server.onNotFound(handleNotFound);
-
-  server.on("/", []() {
-    server.send(200, "text/html", SendHTML(red_state,orange_state,green_state,blue_state,alarm_state));
-  });
-  
-  server.on("/red_on", []() {
-    handle_LED_setState(RED, LOW);
-    server.send(200, "text/html", SendHTML(red_state,orange_state,green_state,blue_state,alarm_state));
-  });
-  server.on("/red_flash", []() {
-    handle_LED_setState(RED_FLASH, LOW);
-    server.send(200, "text/html", SendHTML(red_state,orange_state,green_state,blue_state,alarm_state));
-  });
-  server.on("/red_off", []() {
-    handle_LED_setState(RED, HIGH);
-    handle_LED_setState(RED_FLASH, HIGH);
-    server.send(200, "text/html", SendHTML(red_state,orange_state,green_state,blue_state,alarm_state));
-  });
-
-  server.on("/orange_on", []() {
-    handle_LED_setState(ORANGE, LOW);
-    server.send(200, "text/html", SendHTML(red_state,orange_state,green_state,blue_state,alarm_state));
-  });
-  server.on("/orange_flash", []() {
-    handle_LED_setState(ORANGE_FLASH, LOW);
-    server.send(200, "text/html", SendHTML(red_state,orange_state,green_state,blue_state,alarm_state));
-  });
-  server.on("/orange_off", []() {
-    handle_LED_setState(ORANGE, HIGH);
-    handle_LED_setState(ORANGE_FLASH, HIGH);
-    server.send(200, "text/html", SendHTML(red_state,orange_state,green_state,blue_state,alarm_state));
-  });
-
-  server.on("/green_on", []() {
-    handle_LED_setState(GREEN, LOW);
-    server.send(200, "text/html", SendHTML(red_state,orange_state,green_state,blue_state,alarm_state));
-  });
-  server.on("/green_flash", []() {
-    handle_LED_setState(GREEN_FLASH, LOW);
-    server.send(200, "text/html", SendHTML(red_state,orange_state,green_state,blue_state,alarm_state));
-  });
-  server.on("/green_off", []() {
-    handle_LED_setState(GREEN, HIGH);
-    handle_LED_setState(GREEN_FLASH, HIGH);
-    server.send(200, "text/html", SendHTML(red_state,orange_state,green_state,blue_state,alarm_state));
-  });
-
-  server.on("/blue_on", []() {
-    handle_LED_setState(BLUE, LOW);
-    server.send(200, "text/html", SendHTML(red_state,orange_state,green_state,blue_state,alarm_state));
-  });
-  server.on("/blue_off", []() {
-    handle_LED_setState(BLUE, HIGH);
-    server.send(200, "text/html", SendHTML(red_state,orange_state,green_state,blue_state,alarm_state));
-  });
-
-  server.on("/alarm_on", []() {
-    handle_LED_setState(ALARM, LOW);
-    server.send(200, "text/html", SendHTML(red_state,orange_state,green_state,blue_state,alarm_state));
-  });
-  server.on("/alarm_off", []() {
-    handle_LED_setState(ALARM, HIGH);
-    server.send(200, "text/html", SendHTML(red_state,orange_state,green_state,blue_state,alarm_state));
-  });
-
-  server.on("/all_off", []() {
-    for (int led=RED; led<LED_END; ++led)
-      handle_LED_setState(led, HIGH);
-    server.send(200, "text/html", SendHTML(red_state,orange_state,green_state,blue_state,alarm_state));
-  });
-
-
-  prevMillis = millis();
-
-   // Startup server
-  server.begin();
-
-  // blink the heartbeat LED a few times to indicate we're ready
-  for (int i=0; i<5; ++i) {
-    digitalWrite(out_HB_LED, !digitalRead(out_HB_LED));
-    delay(100);
-  }
-
-  Serial.println("HTTP server started");
-}
-
-void loop(void) {  
-  // First let's toggle the HB LED if 1000ms has elapsed
-  unsigned long currentMillis = millis();  
-  if (currentMillis - prevMillis >= HB_period_ms)  
-  {
-    digitalWrite(out_HB_LED, !digitalRead(out_HB_LED));  //if so, change the state of the LED.  Uses a neat trick to change the state
-    prevMillis = currentMillis;  
-  }
-
-//  Serial.print("server.uri():");
-//  Serial.println(server.uri());
-
-  server.handleClient();
-  MDNS.update();
-}
-
-String SendHTML(
-  uint8_t red_state, 
-  uint8_t orange_state,
-  uint8_t green_state,
-  uint8_t blue_state,
-  uint8_t alarm_state
-){
+String CreateHTML(){
   String ptr = "<!DOCTYPE html> <html>\n";
   ptr +="<head><meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0, user-scalable=no\">\n";
-  ptr +="<title>LED Control</title>\n";
+  ptr +="<link href=\"data:image/x-icon;base64,AAABAAEAEBAQAAEABAAoAQAAFgAAACgAAAAQAAAAIAAAAAEABAAAAAAAgAAAAAAAAAAAAAAA";
+  ptr +="EAAAAAAAAAAAAAAA/4QAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAEA";
+  ptr +="ERABAAEAEBAQABAQEBABAAEAEQARABAQABAQABAAAQARAAEQARAAAAAAAAAAAAAAAAAAAAAAEREAEQAQAAAQAAEAEBAAABAAAAAQEAAAERAAEQ";
+  ptr +="AREAAQAAEAABABABAAAQAQEAEAEREAEQAREAAAAAAAAAAAD//wAA2N0AAKuqAADdmQAArrsAANnMAAD//wAA//8AAIZvAAC9rwAAv68AAI5jAAC97QAAv";
+  ptr +="a0AAIZjAAD//wAA\" rel=\"icon\" type=\"image/x-icon\" />\n";
+  ptr +="<title>Stop Light Server</title>\n";
   ptr +="<style>html { font-family: Helvetica; display: inline-block; margin: 0px auto; text-align: center;}\n";
   ptr +="body{margin-top: 50px;} h1 {color: #444444;margin: 50px auto 30px;} h3 {color: #444444;margin-bottom: 50px;}\n";
   ptr +=".button {display: inline-block;width: 80px;background-color: #1abc9c;border: none;color: white;padding: 8px 20px;text-decoration: none;font-size: 25px;margin: 0px auto 25px;cursor: pointer;border-radius: 4px;}\n";
@@ -370,15 +360,13 @@ String SendHTML(
 /* ----- Util functions ----- */
 void wifi_init()
 {
-  Serial.print("Setting up network with static IP: ");
-  //Serial.println(ip);
+  Serial.print("Setting up network with static IP.");
   WiFi.config(ip, gateway, subnet, DNS);
   delay(100);
   WiFi.mode(WIFI_STA);
   WiFi.begin(ssid, password);
   // Connect to Wi-Fi network with SSID and password
-  Serial.print("Connecting to ");
-  Serial.println(ssid);
+  Serial.printf("Connecting to %s", ssid);
   while (WiFi.status() != WL_CONNECTED) {
       Serial.print(".");
       delay(200);
@@ -389,8 +377,37 @@ void wifi_init()
     delay(5000);
     ESP.restart();
   }
-  Serial.println("");
-  Serial.println("WiFi connected.");
-  Serial.println("IP address: ");
+  Serial.print("WiFi connected. IP address: ");
   Serial.println(WiFi.localIP());
+}
+
+void handleNotFound() {
+  String message = "404!\n\n";
+  message += "URI: ";
+  message += server.uri();
+  message += "\nMethod: ";
+  message += (server.method() == HTTP_GET) ? "GET" : "POST";
+  message += "\nArguments: ";
+  message += server.args();
+  message += "\n";
+  for (uint8_t i = 0; i < server.args(); i++) {
+    message += " " + server.argName(i) + ": " + server.arg(i) + "\n";
+  }
+  Serial.println(message);
+
+  // now redirect
+  server.sendHeader("Location", "/",true);   //Redirect to our html web page  
+  server.send(302, "text/plane","");
+}
+
+void blinkLED(int pin, int delay_ms, int cnt)
+{
+  for (int i=0; i<cnt; ++i)
+  {
+    digitalWrite(pin, LOW); 
+    delay(delay_ms);                      
+    digitalWrite(pin, HIGH);
+    if (i+1<cnt)
+      delay(delay_ms);                      
+  }
 }

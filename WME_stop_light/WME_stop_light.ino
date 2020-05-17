@@ -127,10 +127,12 @@ void setup(void) {
   });
   
   server.on("/red_on", []() {
+    handle_LED_setState(RED_FLASH, HIGH);
     handle_LED_setState(RED, LOW);
     server.send(200, "text/html", CreateHTML());
   });
   server.on("/red_flash", []() {
+    handle_LED_setState(RED, HIGH);
     handle_LED_setState(RED_FLASH, LOW);
     server.send(200, "text/html", CreateHTML());
   });
@@ -141,10 +143,12 @@ void setup(void) {
   });
 
   server.on("/orange_on", []() {
+    handle_LED_setState(ORANGE_FLASH, HIGH);
     handle_LED_setState(ORANGE, LOW);
     server.send(200, "text/html", CreateHTML());
   });
   server.on("/orange_flash", []() {
+    handle_LED_setState(ORANGE, HIGH);
     handle_LED_setState(ORANGE_FLASH, LOW);
     server.send(200, "text/html", CreateHTML());
   });
@@ -155,10 +159,12 @@ void setup(void) {
   });
 
   server.on("/green_on", []() {
+    handle_LED_setState(GREEN_FLASH, HIGH);
     handle_LED_setState(GREEN, LOW);
     server.send(200, "text/html", CreateHTML());
   });
   server.on("/green_flash", []() {
+    handle_LED_setState(GREEN, HIGH);
     handle_LED_setState(GREEN_FLASH, LOW);
     server.send(200, "text/html", CreateHTML());
   });

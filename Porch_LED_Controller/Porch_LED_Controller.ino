@@ -48,8 +48,16 @@ typedef enum {
 } LED_Fade_States_t;
 
 typedef enum {
+    blink_blue, blink_red, blink_yellow, blink_green, blink_teal, blink_violet
+} Blink_States_t;
+
+typedef enum {
     state_idle, state_running 
 } Run_States_t;
+
+typedef enum {
+    program_fade, program_random, program_blink 
+} LED_program_t;
 
 // Pin mapping for the first string of lights. Pins D5 - D7
 #define BLUE_LED_OUT         D8
@@ -73,7 +81,13 @@ tmElements_t tmEnd1;
 tmElements_t tmEnd2;
 tmElements_t tmMotionAlertStart;
 tmElements_t tmMotionAlertEnd;
-
+time_t start1_time;
+time_t end1_time;
+time_t start2_time;
+time_t end2_time;
+time_t motionAlertStart_time;
+time_t motionAlertEnd_time;
+time_t now_time;
 
 const int maxBrightness = 1023;
 //int maxBrightness = 500;
@@ -86,7 +100,9 @@ int currentR;
 int currentG;
 int currentB;
 LED_Fade_States_t fade_state;
+Blink_States_t    blink_state;
 Run_States_t      run_state;
+LED_program_t     led_program;
 
 void setup() 
 {
@@ -184,8 +200,10 @@ void setup()
   currentG = minBrightness;
   currentB = minBrightness;
   fade_state = blue_to_violet;
+  blink_state = blink_blue;
   run_state  = state_idle;
 
+  led_program = program_fade;
   allLEDsOff();
   
   // setup start/end time structs for scheduler
@@ -225,13 +243,13 @@ void loop()
   tmStart1.Day = tmEnd1.Day = tmStart2.Day = tmEnd2.Day = \
        tmMotionAlertStart.Day = tmMotionAlertEnd.Day= day();
 
-  time_t start1_time = makeTime(tmStart1);
-  time_t end1_time = makeTime(tmEnd1);
-  time_t start2_time = makeTime(tmStart2);
-  time_t end2_time = makeTime(tmEnd2);
-  time_t motionAlertStart_time = makeTime(tmMotionAlertStart);
-  time_t motionAlertEnd_time = makeTime(tmMotionAlertEnd);
-  time_t now_time = now();
+  start1_time = makeTime(tmStart1);
+  end1_time = makeTime(tmEnd1);
+  start2_time = makeTime(tmStart2);
+  end2_time = makeTime(tmEnd2);
+  motionAlertStart_time = makeTime(tmMotionAlertStart);
+  motionAlertEnd_time = makeTime(tmMotionAlertEnd);
+  now_time = now();
 
   if (timeStatus() != timeNotSet)
   {
@@ -246,8 +264,7 @@ void loop()
     {
       if (run_state == state_idle)
       {
-        Serial.print("Starting LED Fade program at ");
-        digitalClockDisplay();
+        Serial.printf("Starting LED Fade program at %s\n", digitalClockDisplay());
 
         // setup starting config for fade state machine
         currentR = minBrightness;
@@ -263,9 +280,10 @@ void loop()
     {
       if (run_state == state_running)
       {
-          Serial.print("Ending LED Fade program at ");
+          Serial.printf("Ending LED Fade program at %s\n", digitalClockDisplay());
           digitalClockDisplay();
           allLEDsOff();
+
           run_state = state_idle;
       }
     }
@@ -284,9 +302,25 @@ void loop()
     allLEDsValue(minBrightness);
   }
 
-  if ((run_state = state_running) && (light_state == ON))
+  if ((run_state == state_running) && (light_state == ON))
   {
-    fadeLEDs();
+    switch (led_program)
+    {
+      case program_fade:
+        fadeLEDs();
+        break;
+
+      case program_random:
+        fadeLEDs();
+        break;
+
+      case program_blink:
+        fadeLEDs();
+        break;
+
+      default:
+        fadeLEDs();
+    }
   }
 
 
@@ -377,6 +411,35 @@ void fadeLEDs()
         Serial.println("Changing state to blue_to_violet");
     } 
     break;
+
+    default:
+    Serial.println("fadeLEDs: state not supported");
+    fade_state = blue_to_violet;
+  }
+
+  // Serial.print(currentR);
+  // Serial.print(", ");
+  // Serial.print(currentG);
+  // Serial.print(", ");
+  // Serial.println(currentB);
+}
+
+void blinkLEDs()
+{
+
+   // blink_blue, blink_red, blink_yellow, blink_green, blink_teal, blink_violet
+
+
+  switch (blink_state)
+  {
+    case blink_blue:
+      analogWrite(RED_LED_OUT, minBrightness);
+      analogWrite(GREEN_LED_OUT, minBrightness);
+      analogWrite(BLUE_LED_OUT, maxBrightness);
+      blink_state = blink_red;
+      Serial.println("Changing state to blink_red");
+      break;
+
 
     default:
     Serial.println("fadeLEDs: state not supported");
@@ -499,13 +562,6 @@ String CreateHTML(){
   ptr +="<h6>Current Time: ";
   ptr +=buildDateTimeStr(now());
   ptr +="</h6>\n";
-  ptr +="<h6>NTPTimeSet: ";
-  ptr +=(NTPTimeSet?"True":"False");
-  ptr +=", run_state: ";
-  ptr +=(run_state==state_running?"Running":"Idle");
-  ptr +=", light_state: ";
-  ptr +=(light_state==ON?"On":"Off");
-  ptr +="</h6>\n";
   
   if( light_state == ON) {
     ptr +="<p>Light Status: ON</p><a class=\"button button-off\" href=\"/light_off\">OFF</a>\n";
@@ -518,13 +574,22 @@ String CreateHTML(){
   ptr +="<a class=\"button button-off\" href=\"/fade_medium\">Medium</a>\n";
   ptr +="<a class=\"button button-off\" href=\"/fade_fast\">Fast</a>\n";
 
-  ptr +="<p>Schedule:</p>";
-  ptr +="<h6>Time Set 1: " + buildTimeStr(makeTime(tmStart1)) + " - " + buildTimeStr(makeTime(tmEnd1));
-  ptr +="</h6>\n";
-  ptr +="<h6>Time Set 2: " + buildTimeStr(makeTime(tmStart2)) + " - " + buildTimeStr(makeTime(tmEnd2));
-  ptr +="</h6>\n";
-  ptr +="<h6>Motion Alert: " + buildTimeStr(makeTime(tmMotionAlertStart)) + " - " + buildTimeStr(makeTime(tmMotionAlertEnd));
-  ptr +="</h6>\n";
+  ptr +="<table><caption>Debug Info</caption><tbody>\n";
+  //ptr +="<thead><tr><th>Variable</th><th>Value</th></tr></thead>\n";
+  ptr +="<tbody>";
+  ptr +="<tr><td>On Range 1</td><td>"+buildTimeStr(makeTime(tmStart1))+"</td><td>"+buildTimeStr(makeTime(tmEnd1))+"</td></tr>\n";
+  ptr +="<tr><td>On Range 1</td><td>"+String(start1_time)+"</td><td>"+String(end1_time)+"</td></tr>\n";
+  ptr +="<tr><td>On Range 2</td><td>"+buildTimeStr(makeTime(tmStart2))+"</td><td>"+buildTimeStr(makeTime(tmEnd2))+"</td></tr>\n";
+  ptr +="<tr><td>On Range 2</td><td>"+String(start2_time)+"</td><td>"+String(end2_time)+"</td></tr>\n";
+  ptr +="<tr><td>Motion Range</td><td>"+buildTimeStr(makeTime(tmMotionAlertStart))+"</td><td>"+buildTimeStr(makeTime(tmMotionAlertEnd))+"</td></tr>\n";
+  ptr +="<tr><td>Motion Range</td><td>"+String(motionAlertStart_time)+"</td><td>"+String(motionAlertEnd_time)+"</td></tr>\n";
+  ptr +="<tr><td>Now</td><td>"+buildTimeStr(now_time)+"</td><td>"+String(now_time)+"</td></tr>\n";
+  ptr +="<tr><td>Time set?</td><td>"+(timeStatus()!=timeNotSet?"True":"False")+"</td></tr>\n";
+  ptr +="<tr><td>NTP Time Set?</td><td>"+(NTPTimeSet?"True":"False")+"</td></tr>\n";
+  ptr +="<tr><td>Run State:</td><td>"+(run_state==state_running?"Running":"Idle")+"</td></tr>\n";
+  ptr +="<tr><td>Light State:</td><td>"+(light_state==ON?"On":"Off")+"</td></tr>\n";
+  ptr +="<tr><td>LED Program:</td><td>"+led_program+"</td></tr>\n";
+  ptr +="</tbody></table>\n";
 
   ptr +="</body>\n";
   ptr +="</html>\n";

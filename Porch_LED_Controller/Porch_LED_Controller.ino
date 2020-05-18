@@ -12,7 +12,7 @@
 #include <ArduinoOTA.h>
 
 #include "/home/suzi/src/sketches/defs/sierra_wifi_defs.h"
-#define version_str "v0.9.3-20200516"
+#define version_str "v0.9.4-20200517"
 
 // forward declarations...
 void wifi_init();
@@ -264,7 +264,7 @@ void loop()
     {
       if (run_state == state_idle)
       {
-        Serial.printf("Starting LED Fade program at %s\n", digitalClockDisplay());
+        Serial.printf("Starting LED Fade program at %s\n", buildDateTimeStr(now_time).c_str());
 
         // setup starting config for fade state machine
         currentR = minBrightness;
@@ -280,8 +280,7 @@ void loop()
     {
       if (run_state == state_running)
       {
-          Serial.printf("Ending LED Fade program at %s\n", digitalClockDisplay());
-          digitalClockDisplay();
+          Serial.printf("Ending LED Fade program at %s\n", buildDateTimeStr(now_time).c_str());
           allLEDsOff();
 
           run_state = state_idle;
@@ -552,6 +551,7 @@ String CreateHTML(){
   ptr +=".button-off {background-color: #34495e;}\n";
   ptr +=".button-off:active {background-color: #2c3e50;}\n";
   ptr +="p {font-size: 14px;color: #888;margin-bottom: 10px;}\n";
+  ptr +="table, th, td {border: 1px solid black;}\n";
   ptr +="</style>\n";
   ptr +="</head>\n";
   ptr +="<body>\n";
@@ -574,6 +574,11 @@ String CreateHTML(){
   ptr +="<a class=\"button button-off\" href=\"/fade_medium\">Medium</a>\n";
   ptr +="<a class=\"button button-off\" href=\"/fade_fast\">Fast</a>\n";
 
+  String time_status = (timeStatus()!=timeNotSet?"True":"False");
+  String NTP_time_set = (NTPTimeSet?"True":"False");
+  String run_state_ = (run_state==state_running?"Running":"Idle");
+  String light_state_ = (light_state==ON?"On":"Off");
+  
   ptr +="<table><caption>Debug Info</caption><tbody>\n";
   //ptr +="<thead><tr><th>Variable</th><th>Value</th></tr></thead>\n";
   ptr +="<tbody>";
@@ -584,11 +589,16 @@ String CreateHTML(){
   ptr +="<tr><td>Motion Range</td><td>"+buildTimeStr(makeTime(tmMotionAlertStart))+"</td><td>"+buildTimeStr(makeTime(tmMotionAlertEnd))+"</td></tr>\n";
   ptr +="<tr><td>Motion Range</td><td>"+String(motionAlertStart_time)+"</td><td>"+String(motionAlertEnd_time)+"</td></tr>\n";
   ptr +="<tr><td>Now</td><td>"+buildTimeStr(now_time)+"</td><td>"+String(now_time)+"</td></tr>\n";
-  ptr +="<tr><td>Time set?</td><td>"+(timeStatus()!=timeNotSet?"True":"False")+"</td></tr>\n";
-  ptr +="<tr><td>NTP Time Set?</td><td>"+(NTPTimeSet?"True":"False")+"</td></tr>\n";
-  ptr +="<tr><td>Run State:</td><td>"+(run_state==state_running?"Running":"Idle")+"</td></tr>\n";
-  ptr +="<tr><td>Light State:</td><td>"+(light_state==ON?"On":"Off")+"</td></tr>\n";
-  ptr +="<tr><td>LED Program:</td><td>"+led_program+"</td></tr>\n";
+  ptr +="<tr><td>Time set?</td><td>";
+  ptr +=time_status+"</td></tr>\n";
+  ptr +="<tr><td>NTP Time Set?</td><td>";
+  ptr +=NTP_time_set+"</td></tr>\n";
+  ptr +="<tr><td>Run State:</td><td>";
+  ptr +=run_state_+"</td></tr>\n";
+  ptr +="<tr><td>Light State:</td><td>";
+  ptr +=light_state_+"</td></tr>\n";
+  ptr +="<tr><td>LED Program:</td><td>";
+  ptr +=String(led_program)+"</td></tr>\n";
   ptr +="</tbody></table>\n";
 
   ptr +="</body>\n";

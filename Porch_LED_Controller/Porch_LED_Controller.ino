@@ -12,7 +12,7 @@
 #include <ArduinoOTA.h>
 
 #include "/home/suzi/src/sketches/defs/sierra_wifi_defs.h"
-#define version_str "v0.9.4-20200517"
+#define version_str "v0.9.5-20200517"
 
 // forward declarations...
 void wifi_init();

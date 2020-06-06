@@ -1,0 +1,24 @@
+Lafvin Nanos
+
+ - must have USB-Ser driver installed for non-standard UARD chippp: CH340G.  See
+   https://github.com/juliagoda/CH341SER (insalled on Mint 06/06/20)
+
+ - Select board: Arduino Nano
+
+ - Select Processor: ATMega328P (old bootloader)
+   - some say to use the normal "ATMega328P"
+   - Amz site has some good pointers: https://www.amazon.com/LAFVIN-Board-ATmega328P-Micro-Controller-Arduino/dp/B07G99NNXL
+
+ - Select Programmer: "AVRISP mkII"
+
+
+Lafvin Uno
+
+  - Select board: Arduino Uno
+  - Select Programmer: "AVRISP mkII"
+
+ESP8266 ESP01
+  - Select board: Generic ESP8266 Module
+
+ESP8266 ESP12
+  - Select board: NodeMCU 0.9 (ESP12 Module)

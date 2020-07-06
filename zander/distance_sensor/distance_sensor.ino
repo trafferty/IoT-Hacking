@@ -9,7 +9,20 @@ int LEDpin6 = 6;
 long inches;
 int delay_ms = 200;
 int flash = 1;
-int dlay = 50;
+//int flosh = 1;
+int dlay = 40;
+int dlay_start = 0;
+
+
+void set_lights(int pin6, int pin7, int pin8, int pin9, bool pin10)
+{
+    digitalWrite(LEDpin10, pin10);
+    digitalWrite(LEDpin9, pin9);
+    digitalWrite(LEDpin8, pin8);
+    digitalWrite(LEDpin7, pin7);
+    digitalWrite(LEDpin6, pin6);
+}
+
 
 // the setup function runs once when you press reset or power the board
 void setup() {
@@ -35,57 +48,39 @@ void loop() {
   
   float duration, cm;
 
-  if (inches > 25)
+  
+  if (inches > 105)
   {
-    digitalWrite(LEDpin10, HIGH);
-    digitalWrite(LEDpin9, HIGH);
-    digitalWrite(LEDpin8, HIGH);
-    digitalWrite(LEDpin7, HIGH);
-    digitalWrite(LEDpin6, HIGH);
+    set_lights(LOW, LOW, LOW, LOW, LOW);
   }
-  else if ((inches > 20) && (inches <= 25))
+
+  else if ((inches > 85) && (inches <= 102))
   {
-    digitalWrite(LEDpin10, HIGH);
-    digitalWrite(LEDpin9, HIGH);
-    digitalWrite(LEDpin8, HIGH); 
-    digitalWrite(LEDpin7, HIGH);
-    digitalWrite(LEDpin6, LOW);
+    set_lights(HIGH, HIGH, HIGH, HIGH, HIGH);
   }
-  else if ((inches > 15) && (inches <= 20))
+  else if ((inches > 68) && (inches <= 85))
   {
-    digitalWrite(LEDpin10, HIGH);
-    digitalWrite(LEDpin9, HIGH);
-    digitalWrite(LEDpin8, HIGH); 
-    digitalWrite(LEDpin7, LOW);
-    digitalWrite(LEDpin6, LOW);
+    set_lights(LOW, HIGH, HIGH, HIGH, HIGH);
   }
-  else if ((inches > 10) && (inches <= 15))
+  else if ((inches > 51) && (inches <= 68))
   {
-    digitalWrite(LEDpin10, HIGH);
-    digitalWrite(LEDpin9, HIGH);
-    digitalWrite(LEDpin8, LOW); 
-    digitalWrite(LEDpin7, LOW);
-    digitalWrite(LEDpin6, LOW);
+    set_lights(LOW, LOW, HIGH, HIGH, HIGH);
+  }
+  else if ((inches > 34) && (inches <= 51))
+  {
+    set_lights(LOW, LOW, LOW, HIGH, HIGH);
   } 
-  else if ((inches > 5) && (inches <= 10))
+  else if ((inches > 18) && (inches <= 34))
   {
-    digitalWrite(LEDpin10, HIGH);
-    digitalWrite(LEDpin9, LOW);
-    digitalWrite(LEDpin8, LOW); 
-    digitalWrite(LEDpin7, LOW);
-    digitalWrite(LEDpin6, LOW);
+    set_lights(LOW, LOW, LOW, LOW, HIGH);
     flash = 1;
   } 
   else 
    {
-    digitalWrite(LEDpin10, LOW);
-    digitalWrite(LEDpin9, LOW);
-    digitalWrite(LEDpin8, LOW); 
-    digitalWrite(LEDpin7, LOW);
-    digitalWrite(LEDpin6, LOW);
+    set_lights(LOW, LOW, LOW, LOW, LOW);
    }
 
-  if ((1 == flash) && (inches <= 5))
+  if ((1 == flash) && (inches <= 18))
    {
     digitalWrite(LEDpin10, HIGH);
     delay(dlay);
@@ -122,6 +117,9 @@ void loop() {
     delay(dlay);
     digitalWrite(LEDpin9, LOW);
     digitalWrite(LEDpin7, LOW);
+    digitalWrite(LEDpin10, HIGH);
+    delay(dlay);
+    digitalWrite(LEDpin10, LOW);
 
     flash = 2;
    }

@@ -6,6 +6,7 @@ int LEDpin9 = 9;
 int LEDpin8 = 8;
 int LEDpin7 = 7;
 int LEDpin6 = 6;
+int testPin = 13;
 long inches;
 int delay_ms = 200;
 int flash = 1;
@@ -22,12 +23,7 @@ int D3 = 999;
 int D2 = 999;
 int D1 = 999;
 
-bool test = true;
-
-
-
-
-
+bool test_mode = false;
 
 // the setup function runs once when you press reset or power the board
 void setup() {
@@ -44,8 +40,14 @@ void setup() {
   pinMode(LEDpin8, OUTPUT);
   pinMode(LEDpin7, OUTPUT);
   pinMode(LEDpin6, OUTPUT);
+  pinMode(testPin, INPUT_PULLUP);
 
-  if (test) {
+  if (digitalRead(testPin) == HIGH) {
+    test_mode = true;
+    Serial.println("**** Warning: In test Mode! *****");
+  }
+
+  if (test_mode) {
     D6 = 12;
     D5 = 10;
     D4 = 8;
@@ -102,7 +104,7 @@ void loop() {
     set_lights(LOW, LOW, LOW, LOW, LOW);
    }
 
-  if ((1 == flash) && (inches <= 18))
+  if ((1 == flash) && (inches <= D1))
    {
     do_flash(dlay);
     do_flash(dlay);

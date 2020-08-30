@@ -1,4 +1,7 @@
 
+enum CarStates_t {  S_UNKNOWN=0, S_NO_CAR, S_CAR_D5, S_CAR_D4, S_CAR_D3, 
+                    S_CAR_D2, S_CAR_D1, S_CAR_PERFECT, S_TOO_CLOSE };
+
 int trigPin = 11;    // Trigger
 int echoPin = 12;    // Echo
 int LEDpin10 = 10;    // LED output
@@ -7,22 +10,22 @@ int LEDpin8 = 8;
 int LEDpin7 = 7;
 int LEDpin6 = 6;
 int testPin = 13;
-long inches;
+int burst = 0;
+float distance_inches;
 int delay_ms = 200;
-int flash = 1;
-//int flosh = 1;
 int dlay = 40;
 int dlay_start = 0;
-int current_ms = millis();
-int s_unknown = 0;
-int state = s_unknown;
+long state_change_ts_ms;
+int time_out_ms = 15000;
+bool timed_out = false;
+CarStates_t previous_state = S_UNKNOWN;
 int D6 = 999;
 int D5 = 999;
 int D4 = 999;
 int D3 = 999;
 int D2 = 999;
 int D1 = 999;
-
+int D0 = 999;
 bool test_mode = false;
 
 // the setup function runs once when you press reset or power the board
@@ -49,70 +52,145 @@ void setup() {
 
   if (test_mode) {
     D6 = 12;
-    D5 = 10;
-    D4 = 8;
-    D3 = 6;
-    D2 = 4;
-    D1 = 2;
+    D5 = 11;
+    D4 = 9;
+    D3 = 7;
+    D2 = 5;
+    D1 = 3;
+    D0 = 2;
   } else {
-    D6 = 105;
-    D5 = 85;
+    D6 = 105;  // beyond this distance, no car
+    D5 = 85;   // car detected!
     D4 = 68;
-    D3 = 51;
-    D2 = 34;
-    D1 = 18;
+    D3 = 35;  //51
+    D2 = 24;  // 34
+    D1 = 20;   // car at perfect distance
+    D0 = 17;   // closest car can be!
   }
 
-  inches = 25;
+  distance_inches = 999;
 }
 
 // the loop function runs over and over again forever
 void loop() {
-  
-  float duration, cm;
-  
-  current_ms = millis();
-  //Serial.print(current_ms);
-  
-  if (inches > D6)
+ 
+  CarStates_t new_state = S_UNKNOWN;
+
+  distance_inches = get_distance();
+
+  /*
+   * First, check which region the distance falls in
+   * and set the proper state.
+   */
+  if (distance_inches > D6)
   {
-    set_lights(LOW, LOW, LOW, LOW, LOW);
+    new_state = S_NO_CAR;
   }
-  else if ((inches > D5) && (inches <= D6))
+  else if ((distance_inches > D5) && (distance_inches <= D6))
   {
-    set_lights(HIGH, HIGH, HIGH, HIGH, HIGH);
+    new_state = S_CAR_D5;
   }
-  else if ((inches > D4) && (inches <= D5))
+  else if ((distance_inches > D4) && (distance_inches <= D5))
   {
-    set_lights(LOW, HIGH, HIGH, HIGH, HIGH);
+    new_state = S_CAR_D4;
   }
-  else if ((inches > D3) && (inches <= D4))
+  else if ((distance_inches > D3) && (distance_inches <= D4))
   {
-    set_lights(LOW, LOW, HIGH, HIGH, HIGH);
+    new_state = S_CAR_D3;
   }
-  else if ((inches > D2) && (inches <= D3))
+  else if ((distance_inches > D2) && (distance_inches <= D3))
   {
-    set_lights(LOW, LOW, LOW, HIGH, HIGH);
+    new_state = S_CAR_D2;
   } 
-  else if ((inches > D1) && (inches <= D2))
+  else if ((distance_inches > D1) && (distance_inches <= D2))
   {
-    set_lights(LOW, LOW, LOW, LOW, HIGH);
-    flash = 1;
+    new_state = S_CAR_D1;
   } 
-  else 
-   {
-    set_lights(LOW, LOW, LOW, LOW, LOW);
-   }
+  else if ((distance_inches > D0) && (distance_inches <= D1))
+  {
+    new_state = S_CAR_PERFECT;
+  } 
+  else if (distance_inches <= D0)
+  {
+    new_state = S_TOO_CLOSE;
+  } 
 
-  if ((1 == flash) && (inches <= D1))
-   {
-    do_flash(dlay);
-    do_flash(dlay);
+  /* Now do some action based on the new state.  If the new state
+   *  has not changed from previous loop, just check for timeout
+   */
+  if (new_state == S_TOO_CLOSE)
+  {
+    Serial.println("Car TOO CLOSE!");
+    previous_state = new_state;
+    do_flash(100);
+  }
+  else if (new_state != previous_state)
+  {
+    previous_state = new_state;
+    state_change_ts_ms = millis();
+    timed_out = false;
+    
+    Serial.println(distance_inches);
+ 
+    switch (new_state)
+    {
+      case S_NO_CAR:
+        Serial.println("No Car!");
+        set_lights(LOW, LOW, LOW, LOW, LOW);
+        break;
+        
+      case S_CAR_D5:
+        Serial.println("Car at D5");
+        set_lights(HIGH, HIGH, HIGH, HIGH, HIGH);
+        break;
+        
+      case S_CAR_D4:
+        Serial.println("Car at D4");
+        set_lights(LOW, HIGH, HIGH, HIGH, HIGH);
+        break;
+        
+      case S_CAR_D3: 
+        Serial.println("Car at D3");
+        set_lights(LOW, LOW, HIGH, HIGH, HIGH);
+        break;
+        
+      case S_CAR_D2:
+        Serial.println("Car at D2");
+        set_lights(LOW, LOW, LOW, HIGH, HIGH);
+        break;
+        
+      case S_CAR_D1:
+        Serial.println("Car at D1");
+        set_lights(LOW, LOW, LOW, LOW, HIGH);
+        break;
+        
+      case S_CAR_PERFECT:
+        Serial.println("Car perfect!");
+        do_burst(dlay);
+        do_burst(dlay);
+        break;
+     }
+  }
+  else if (new_state == previous_state)
+  {
+    long delta = millis() - state_change_ts_ms;
+    if (( delta > time_out_ms) && !timed_out)
+    {
+      Serial.println(delta);
+      set_lights(LOW, LOW, LOW, LOW, LOW);
+      timed_out = true;
+    }
+  }
+    
+  delay(50);
+}
 
-    flash = 2;
-   }
-
-
+float get_distance()
+{
+  float distance_inches;
+  long distance_cm;
+  float duration;
+  
   digitalWrite(trigPin, LOW);
   delayMicroseconds(5);
   digitalWrite(trigPin, HIGH);
@@ -122,16 +200,13 @@ void loop() {
   // Read the signal from the sensor: a HIGH pulse whose
   // duration is the time (in microseconds) from the sending
   // of the ping to the reception of its echo off of an object.
-  pinMode(echoPin, INPUT);
   duration = pulseIn(echoPin, HIGH);
  
   // Convert the time into a distance
-  cm = (duration/2) / 29.1;     // Divide by 29.1 or multiply by 0.0343
-  inches = (duration/2) / 74;   // Divide by 74 or multiply by 0.0135
-  
-  Serial.println(inches);
+  distance_cm = (duration/2) / 29.1;     // Divide by 29.1 or multiply by 0.0343
+  distance_inches = (duration/2) / 74;   // Divide by 74 or multiply by 0.0135
 
-  delay(50);
+  return distance_inches;
 }
 
 void set_lights(int pin6, int pin7, int pin8, int pin9, bool pin10)
@@ -142,7 +217,22 @@ void set_lights(int pin6, int pin7, int pin8, int pin9, bool pin10)
     digitalWrite(LEDpin7, pin7);
     digitalWrite(LEDpin6, pin6);
 }
-void do_flash(int dlay) {
+void do_flash(int dlay)
+{
+  set_lights(HIGH, HIGH, HIGH, HIGH, HIGH);
+  delay(dlay);
+  set_lights(LOW, LOW, LOW, LOW, LOW);
+  delay(dlay);
+//  set_lights(HIGH, HIGH, HIGH, HIGH, HIGH);
+//  delay(dlay);
+//  set_lights(LOW, LOW, LOW, LOW, LOW);
+//  delay(dlay);
+//  set_lights(HIGH, HIGH, HIGH, HIGH, HIGH);
+//  delay(dlay);
+//  set_lights(LOW, LOW, LOW, LOW, LOW);
+}
+
+void do_burst(int dlay) {
     digitalWrite(LEDpin10, HIGH);
     delay(dlay);
     digitalWrite(LEDpin10, LOW);

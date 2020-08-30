@@ -12,7 +12,7 @@
 #include <ArduinoOTA.h>
 
 #include "/home/suzi/src/sketches/defs/sierra_wifi_defs.h"
-#define version_str "v0.9.5-20200517"
+#define version_str "v0.9.6-20200830"
 
 // forward declarations...
 void wifi_init();
@@ -281,7 +281,7 @@ void loop()
       if (run_state == state_running)
       {
           Serial.printf("Ending LED Fade program at %s\n", buildDateTimeStr(now_time).c_str());
-          allLEDsOff();
+          toggle_light(OFF);
 
           run_state = state_idle;
       }
@@ -301,7 +301,7 @@ void loop()
     allLEDsValue(minBrightness);
   }
 
-  if ((run_state == state_running) && (light_state == ON))
+  if (run_state == state_running)
   {
     switch (led_program)
     {
@@ -473,11 +473,17 @@ void allLEDsOn()
 
 void toggle_light(LIGHT_STATE_t state)
 {
-  if (state == OFF)
+  light_state = state;
+
+  if (light_state == OFF)
   {
     allLEDsOff();
+    run_state = state_idle;
   }
-  light_state = state;
+  else
+  {
+    run_state = state_running;
+  } 
 }
 /* ----- Util functions ----- */
 void wifi_init()

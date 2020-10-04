@@ -59,13 +59,13 @@ void setup() {
     D1 = 3;
     D0 = 2;
   } else {
-    D6 = 105;  // beyond this distance, no car
-    D5 = 85;   // car detected!
-    D4 = 68;
-    D3 = 35;  //51
-    D2 = 24;  // 34
-    D1 = 20;   // car at perfect distance
-    D0 = 17;   // closest car can be!
+    D6 = 100;  // beyond this distance, no car
+    D5 = 80;   // 
+    D4 = 66;
+    D3 = 40;  // 51
+    D2 = 30;  // 34
+    D1 = 18.5;   //18 car at perfect distance
+    D0 = 13.5;   //15 closest car can be!
   }
 
   distance_inches = 999;

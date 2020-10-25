@@ -79,8 +79,6 @@ tmElements_t tmStart1;
 tmElements_t tmStart2;
 tmElements_t tmEnd1;
 tmElements_t tmEnd2;
-tmElements_t tmMotionAlertStart;
-tmElements_t tmMotionAlertEnd;
 time_t start1_time;
 time_t end1_time;
 time_t start2_time;
@@ -219,12 +217,6 @@ void setup()
   tmEnd2.Second = 0;
   tmEnd2.Minute = 45;
   tmEnd2.Hour   = 6;    // 6:45am
-  tmMotionAlertStart.Second = 0;
-  tmMotionAlertStart.Minute = 0;
-  tmMotionAlertStart.Hour   = 0;  // 12:00am
-  tmMotionAlertEnd.Second = 0;
-  tmMotionAlertEnd.Minute = 0;
-  tmMotionAlertEnd.Hour   = 6;    // 6:00am
 
   digitalWrite(MOTION_DETECTED_LED, HIGH);   // turn the LED on (HIGH is the voltage level)
   delay(200);                       // wait for a second
@@ -236,19 +228,14 @@ void loop()
   ArduinoOTA.handle();
 
   // make sure the rest of the scheduling time struct fields are set with proper year, month, day
-  tmStart1.Year = tmEnd1.Year = tmStart2.Year = tmEnd2.Year = \
-      tmMotionAlertStart.Year = tmMotionAlertEnd.Year = year() - 1970;
-  tmStart1.Month = tmEnd1.Month = tmStart2.Month = tmEnd2.Month = \
-      tmMotionAlertStart.Month = tmMotionAlertEnd.Month = month();
-  tmStart1.Day = tmEnd1.Day = tmStart2.Day = tmEnd2.Day = \
-       tmMotionAlertStart.Day = tmMotionAlertEnd.Day= day();
+  tmStart1.Year = tmEnd1.Year = tmStart2.Year = tmEnd2.Year = year() - 1970;
+  tmStart1.Month = tmEnd1.Month = tmStart2.Month = tmEnd2.Month = month();
+  tmStart1.Day = tmEnd1.Day = tmStart2.Day = tmEnd2.Day = day();
 
   start1_time = makeTime(tmStart1);
   end1_time = makeTime(tmEnd1);
   start2_time = makeTime(tmStart2);
   end2_time = makeTime(tmEnd2);
-  motionAlertStart_time = makeTime(tmMotionAlertStart);
-  motionAlertEnd_time = makeTime(tmMotionAlertEnd);
   now_time = now();
 
   if (timeStatus() != timeNotSet)
@@ -592,8 +579,6 @@ String CreateHTML(){
   ptr +="<tr><td>On Range 1</td><td>"+String(start1_time)+"</td><td>"+String(end1_time)+"</td></tr>\n";
   ptr +="<tr><td>On Range 2</td><td>"+buildTimeStr(makeTime(tmStart2))+"</td><td>"+buildTimeStr(makeTime(tmEnd2))+"</td></tr>\n";
   ptr +="<tr><td>On Range 2</td><td>"+String(start2_time)+"</td><td>"+String(end2_time)+"</td></tr>\n";
-  ptr +="<tr><td>Motion Range</td><td>"+buildTimeStr(makeTime(tmMotionAlertStart))+"</td><td>"+buildTimeStr(makeTime(tmMotionAlertEnd))+"</td></tr>\n";
-  ptr +="<tr><td>Motion Range</td><td>"+String(motionAlertStart_time)+"</td><td>"+String(motionAlertEnd_time)+"</td></tr>\n";
   ptr +="<tr><td>Now</td><td>"+buildTimeStr(now_time)+"</td><td>"+String(now_time)+"</td></tr>\n";
   ptr +="<tr><td>Time set?</td><td>";
   ptr +=time_status+"</td></tr>\n";

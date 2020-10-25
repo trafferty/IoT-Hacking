@@ -73,6 +73,7 @@ typedef enum {
 */
 uint8_t light_state = ON;
 uint8_t fade_speed = FADESPEED;
+bool force_on = false;
 
 // structs to hold start/end times for scheduling.
 tmElements_t tmStart1;
@@ -200,6 +201,7 @@ void setup()
   fade_state = blue_to_violet;
   blink_state = blink_blue;
   run_state  = state_idle;
+  force_on = false;
 
   led_program = program_fade;
   allLEDsOff();
@@ -247,7 +249,8 @@ void loop()
     }
 
     if ( ((now_time >= start1_time) && (now_time <= end1_time)) ||
-         ((now_time >= start2_time) && (now_time <= end2_time)) ) 
+         ((now_time >= start2_time) && (now_time <= end2_time)) ||
+         (force_on == false) ) 
     {
       if (run_state == state_idle)
       {
@@ -260,7 +263,8 @@ void loop()
         analogWrite(BLUE_LED_OUT, currentB);
         fade_state = blue_to_violet;
 
-        run_state = state_running; 
+        run_state = state_running;
+        force_on = false;
       }
     } 
     else 
@@ -470,6 +474,7 @@ void toggle_light(LIGHT_STATE_t state)
   else
   {
     run_state = state_running;
+    force_on = true;
   } 
 }
 /* ----- Util functions ----- */

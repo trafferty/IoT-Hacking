@@ -634,7 +634,19 @@ String CreateHTML(){
 }
 
 String CreateSetupHTML(){
-  String ptr = "<!DOCTYPE html> <html> <body> <h2>Setup Timing</h2>\n";
+  String ptr = "<!DOCTYPE html> <html>"
+  ptr += "<style>\n"
+  ptr += "form {margin: 0 auto; width: 400px;padding: 1em; border: 1px solid #CCC;border-radius: 1em;}\n"
+  ptr += "ul {list-style: none; padding: 0; margin: 0;}\n"
+  ptr += "form li + li { margin-top: 1em;}\n"
+  ptr += "label { display: inline-block; width: 90px; text-align: right;}\n"
+  ptr += "input, textarea { font: 1em sans-serif; width: 300px; box-sizing: border-box; border: 1px solid #999;}\n"
+  ptr += "input:focus, textarea:focus { border-color: #000;}\n"
+  ptr += "textarea { vertical-align: top; height: 5em;}\n"
+  ptr += ".button { padding-left: 90px; }\n"
+  ptr += "button { margin-left: .5em;}\n"
+  ptr += "</style>\n"
+  ptr += "<body> <h2>Setup Timing</h2>\n";
   ptr += "<form action=\"/action_setup_timing\" method=\"post\"\n>";
   ptr += "<ul>\n";
   ptr += "<h4> Start Set 1</h4>\n";

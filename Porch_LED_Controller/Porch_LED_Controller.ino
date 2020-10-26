@@ -174,6 +174,13 @@ void setup()
     fade_speed = 0;
     server.send(200, "text/html", CreateHTML());
   });
+  server.on("/setup", []() {
+    server.send(200, "text/html", CreateSetupHTML());
+  });
+  server.on("/action_setup_timing", []() {
+    handle_action_setup_timing();
+    server.send(200, "text/html", CreateHTML());
+  });
 
    // Startup server
   server.begin();
@@ -501,7 +508,25 @@ void wifi_init()
   Serial.println(WiFi.localIP());
 }
 
-void handleNotFound() {
+void handle_action_setup_timing()
+{
+  Serial.println("Setting up new timing values...");
+  tmStart1.Second = server.arg("s1_sec"); 
+  tmStart1.Minute = server.arg("s1_min"); 
+  tmStart1.Hour   = server.arg("s1_hour"); 
+  tmEnd1.Second = server.arg("e1_sec"); 
+  tmEnd1.Minute = server.arg("e1_min"); 
+  tmEnd1.Hour   = server.arg("e1_hour"); 
+  tmStart2.Second = server.arg("s2_sec"); 
+  tmStart2.Minute = server.arg("s2_min"); 
+  tmStart2.Hour   = server.arg("s2_hour"); 
+  tmEnd2.Second = server.arg("e2_sec"); 
+  tmEnd2.Minute = server.arg("e2_min"); 
+  tmEnd2.Hour   = server.arg("e2_hour");
+}
+
+void handleNotFound() 
+{
   String message = "404!\n\n";
   message += "URI: ";
   message += server.uri();
@@ -601,6 +626,54 @@ String CreateHTML(){
   ptr +="</html>\n";
   return ptr;
 }
+
+String CreateSetupHTML(){
+  String ptr = "<!DOCTYPE html> <html> <body> <h2>Setup Timing</h2>\n";
+  ptr += "<form action=\"/action_setup_timing\" method=\"post\"\n>"
+  ptr += "<ul>\n"
+  ptr += "<h4> Start Set 1</h4>\n"
+  ptr += "<li>\n"
+  ptr += "<label for=\"s1_hour\">Hour: </label>\n"
+  ptr += "<input type=\"text\" id=\"s1_hour\" name=\"s1_hour\" value="+String(tmStart1.Hour)+">\n"
+  ptr += "<label for=\"s1_min\">Min: </label>\n"
+  ptr += "<input type=\"text\" id=\"s1_min\" name=\"s1_min\" value="+String(tmStart1.Minute)+">\n"
+  ptr += "<label for=\"s1_sec\">Sec: </label>\n"
+  ptr += "<input type=\"text\" id=\"s1_sec\" name=\"s1_sec\" value="+String(tmStart1.Second)+">\n"
+  ptr += "</li>\n"
+  ptr += "<h4> End Set 1</h4>\n"
+  ptr += "<li>\n"
+  ptr += "<label for=\"e1_hour\">Hour: </label>\n"
+  ptr += "<input type=\"text\" id=\"e1_hour\" name=\"e1_hour\" value="+String(tmEnd1.Hour)+">\n"
+  ptr += "<label for=\"e1_min\">Min: </label>\n"
+  ptr += "<input type=\"text\" id=\"e1_min\" name=\"e1_min\" value="+String(tmEnd1.Minute)+">\n"
+  ptr += "<label for=\"e1_sec\">Sec: </label>\n"
+  ptr += "<input type=\"text\" id=\"e1_sec\" name=\"e1_sec\" value="+String(tmEnd1.Second)+">\n"
+  ptr += "</li>\n"
+  ptr += "<h4> Start Set 2</h4>\n"
+  ptr += "<li>\n"
+  ptr += "<label for=\"s2_hour\">Hour: </label>\n"
+  ptr += "<input type=\"text\" id=\"s2_hour\" name=\"s2_hour\" value="+String(tmStart2.Hour)+">\n"
+  ptr += "<label for=\"s2_min\">Min: </label>\n"
+  ptr += "<input type=\"text\" id=\"s2_min\" name=\"s2_min\" value="+String(tmStart2.Minute)+">\n"
+  ptr += "<label for=\"s2_sec\">Sec: </label>\n"
+  ptr += "<input type=\"text\" id=\"s2_sec\" name=\"s2_sec\" value="+String(tmStart2.Second)+">\n"
+  ptr += "</li>\n"
+  ptr += "<h4> End Set 2</h4>\n"
+  ptr += "<li>\n"
+  ptr += "<label for=\"e2_hour\">Hour: </label>\n"
+  ptr += "<input type=\"text\" id=\"e2_hour\" name=\"e2_hour\" value="+String(tmEnd2.Hour)+">\n"
+  ptr += "<label for=\"e2_min\">Min: </label>\n"
+  ptr += "<input type=\"text\" id=\"e2_min\" name=\"e2_min\" value="+String(tmEnd2.Minute)+">\n"
+  ptr += "<label for=\"e2_sec\">Sec: </label>\n"
+  ptr += "<input type=\"text\" id=\"e2_sec\" name=\"e2_sec\" value="+String(tmEnd2.Second)+">\n"
+  ptr += "</li>\n"
+  ptr += "</ul>\n"
+  ptr += "<input type=\"submit\" value=\"Submit\">\n"
+  ptr += "</form> </body> </html>\n"
+
+  return ptr;
+}
+
 
 void digitalClockDisplay()
 {

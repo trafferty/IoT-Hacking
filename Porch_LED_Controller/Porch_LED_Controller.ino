@@ -10,6 +10,7 @@
 #include <ESP8266WebServer.h>
 #include <ESP8266mDNS.h>
 #include <ArduinoOTA.h>
+#include <EEPROM.h>
 
 #include "/home/suzi/src/sketches/defs/sierra_wifi_defs.h"
 #define version_str "v0.10.0-20201025 (added setup; fixed 'on' bug; fixed DNS bug)"
@@ -59,6 +60,11 @@ typedef enum {
     program_fade, program_random, program_blink 
 } LED_program_t;
 
+enum Mem_Locs {
+    s1_sec, s1_min, s1_hour, e1_sec, e1_min, e1_hour,
+    s2_sec, s2_min, s2_hour, e2_sec, e2_min, e2_hour 
+};
+
 // Pin mapping for the first string of lights. Pins D5 - D7
 #define BLUE_LED_OUT         D8
 #define RED_LED_OUT          D6
@@ -67,6 +73,8 @@ typedef enum {
 #define PIR_IN               D1
 
 #define FADESPEED 3     // make this higher to slow down
+
+#define EEPROM_SIZE 12
 
 /*
 **  global variables...
@@ -84,8 +92,6 @@ time_t start1_time;
 time_t end1_time;
 time_t start2_time;
 time_t end2_time;
-time_t motionAlertStart_time;
-time_t motionAlertEnd_time;
 time_t now_time;
 
 const int maxBrightness = 1023;
@@ -216,19 +222,22 @@ void setup()
   led_program = program_fade;
   allLEDsOff();
   
+  // initialize EEPROM with predefined size
+  EEPROM.begin(EEPROM_SIZE);
+
   // setup start/end time structs for scheduler
-  tmStart1.Second = 0;
-  tmStart1.Minute = 30;
-  tmStart1.Hour   = 19; // 7:00pm
-  tmEnd1.Second = 0;
-  tmEnd1.Minute = 0;
-  tmEnd1.Hour   = 23;   // 11:00pm
-  tmStart2.Second = 0;
-  tmStart2.Minute = 15;
-  tmStart2.Hour   = 6;  // 6:15am
-  tmEnd2.Second = 0;
-  tmEnd2.Minute = 45;
-  tmEnd2.Hour   = 6;    // 6:45am
+  tmStart1.Second = EEPROM.read(s1_sec);
+  tmStart1.Minute = EEPROM.read(s1_min);
+  tmStart1.Hour   = EEPROM.read(s1_hour);
+  tmEnd1.Second   = EEPROM.read(e1_sec);
+  tmEnd1.Minute   = EEPROM.read(e1_min);
+  tmEnd1.Hour     = EEPROM.read(e1_hour);
+  tmStart2.Second = EEPROM.read(s2_sec);
+  tmStart2.Minute = EEPROM.read(s2_min);
+  tmStart2.Hour   = EEPROM.read(s2_hour);
+  tmEnd2.Second   = EEPROM.read(e2_sec);
+  tmEnd2.Minute   = EEPROM.read(e2_min);
+  tmEnd2.Hour     = EEPROM.read(e2_hour);
 
   digitalWrite(MOTION_DETECTED_LED, HIGH);   // turn the LED on (HIGH is the voltage level)
   delay(2000);                       // wait for a second
@@ -325,31 +334,6 @@ void loop()
         fadeLEDs();
     }
   }
-
-
-#if 0
-  if (digitalRead(PIR_IN) == HIGH)
-  {
-    Serial.println("Motion detected!");
-    digitalWrite(MOTION_DETECTED_LED, HIGH);
-
-    if (timeStatus() != timeNotSet)
-    {
-      if((run_state == state_idle) && ((now_time >= motionAlertStart_time) && (now_time <= motionAlertEnd_time)))
-        allLEDsOn();
-    }
-  }
-  else
-  {
-    digitalWrite(MOTION_DETECTED_LED, LOW);
-
-    if (timeStatus() != timeNotSet)
-    {
-      if((run_state == state_idle) && ((now_time >= motionAlertStart_time) && (now_time <= motionAlertEnd_time)))
-        allLEDsOff();
-    }
-  }
-#endif
 
   delay(fade_speed);
   
@@ -520,15 +504,29 @@ void handle_action_setup_timing()
   tmStart1.Second = (server.arg("s1_sec")).toInt(); 
   tmStart1.Minute = (server.arg("s1_min")).toInt(); 
   tmStart1.Hour   = (server.arg("s1_hour")).toInt(); 
-  tmEnd1.Second = (server.arg("e1_sec")).toInt(); 
-  tmEnd1.Minute = (server.arg("e1_min")).toInt(); 
-  tmEnd1.Hour   = (server.arg("e1_hour")).toInt(); 
+  tmEnd1.Second   = (server.arg("e1_sec")).toInt(); 
+  tmEnd1.Minute   = (server.arg("e1_min")).toInt(); 
+  tmEnd1.Hour     = (server.arg("e1_hour")).toInt(); 
   tmStart2.Second = (server.arg("s2_sec")).toInt(); 
   tmStart2.Minute = (server.arg("s2_min")).toInt(); 
   tmStart2.Hour   = (server.arg("s2_hour")).toInt(); 
-  tmEnd2.Second = (server.arg("e2_sec")).toInt(); 
-  tmEnd2.Minute = (server.arg("e2_min")).toInt(); 
-  tmEnd2.Hour   = (server.arg("e2_hour")).toInt(); 
+  tmEnd2.Second   = (server.arg("e2_sec")).toInt(); 
+  tmEnd2.Minute   = (server.arg("e2_min")).toInt(); 
+  tmEnd2.Hour     = (server.arg("e2_hour")).toInt();
+
+  EEPROM.write(s1_sec,  tmStart1.Second);
+  EEPROM.write(s1_min,  tmStart1.Minute);
+  EEPROM.write(s1_hour, tmStart1.Hour  );
+  EEPROM.write(e1_sec,  tmEnd1.Second  );
+  EEPROM.write(e1_min,  tmEnd1.Minute  );
+  EEPROM.write(e1_hour, tmEnd1.Hour    );
+  EEPROM.write(s2_sec,  tmStart2.Second);
+  EEPROM.write(s2_min,  tmStart2.Minute);
+  EEPROM.write(s2_hour, tmStart2.Hour  );
+  EEPROM.write(e2_sec,  tmEnd2.Second  );
+  EEPROM.write(e2_min,  tmEnd2.Minute  );
+  EEPROM.write(e2_hour, tmEnd2.Hour    );
+  EEPROM.commit();
 }
 
 void handleNotFound() 

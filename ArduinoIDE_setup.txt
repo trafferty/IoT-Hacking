@@ -19,6 +19,9 @@ Lafvin Uno
 
 ESP8266 ESP01
   - Select board: Generic ESP8266 Module
+  - Select Programmer: "AVRISP mkII" (autoselected?)
 
 ESP8266 ESP12
   - Select board: NodeMCU 0.9 (ESP12 Module)
+  - Select Programmer: "AVRISP mkII" (autoselected?)
+

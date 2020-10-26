@@ -12,7 +12,7 @@
 #include <ArduinoOTA.h>
 
 #include "/home/suzi/src/sketches/defs/sierra_wifi_defs.h"
-#define version_str "v0.9.6-20200830"
+#define version_str "v0.10.0-20201025 (added setup; fixed 'on' bug; fixed DNS bug)"
 
 // forward declarations...
 void wifi_init();
@@ -24,10 +24,10 @@ void sendNTPpacket(IPAddress &address);
 /*
 **  Network variables...
 */
-IPAddress ip(192, 168, 129, PORCH_LIGHT_IP_LAST_FIELD);  // make sure IP is *outside* of DHCP pool range
-IPAddress gateway(192, 168, 129, 254);
-IPAddress subnet(255, 255, 255, 0);
-IPAddress DNS(192, 168, 129, 254);
+IPAddress ip(IP1, IP2, IP3, PORCH_LIGHT_IP_LAST_FIELD);  // make sure IP is *outside* of DHCP pool range
+IPAddress gateway(GW1, GW2, GW3, GW4);
+IPAddress subnet(SN1, SN2, SN3, SN4);
+IPAddress DNS(DNS1, DNS2, DNS3, DNS4);
 const char* ssid     = SSID;
 const char* password = WIFI_PW;
 int server_port = 80;
@@ -93,6 +93,9 @@ const int maxBrightness = 1023;
 const int minBrightness = 0;
 
 bool NTPTimeSet;
+char ntpServerNamePrimary[] = "pool.ntp.org";
+char ntpServerNameSecondary[] = "time.nist.gov";
+char* ntpServerName = ntpServerNamePrimary;
 
 // Vars for holding LED current values and current fade state
 int currentR;
@@ -228,7 +231,7 @@ void setup()
   tmEnd2.Hour   = 6;    // 6:45am
 
   digitalWrite(MOTION_DETECTED_LED, HIGH);   // turn the LED on (HIGH is the voltage level)
-  delay(200);                       // wait for a second
+  delay(2000);                       // wait for a second
   digitalWrite(MOTION_DETECTED_LED, LOW);    // turn the LED off by making the voltage LOW
 }
 
@@ -257,7 +260,7 @@ void loop()
 
     if ( ((now_time >= start1_time) && (now_time <= end1_time)) ||
          ((now_time >= start2_time) && (now_time <= end2_time)) ||
-         (force_on == false) ) 
+         (force_on == true) ) 
     {
       if (run_state == state_idle)
       {
@@ -297,6 +300,9 @@ void loop()
     allLEDsValue(100);
     delay(1000);
     allLEDsValue(minBrightness);
+    digitalWrite(MOTION_DETECTED_LED, HIGH);   // turn the LED on (HIGH is the voltage level)
+    delay(500);                       // wait for a second
+    digitalWrite(MOTION_DETECTED_LED, LOW);    // turn the LED off by making the voltage LOW
   }
 
   if (run_state == state_running)
@@ -713,8 +719,6 @@ const int NTP_PACKET_SIZE = 48; // NTP time is in the first 48 bytes of message
 byte packetBuffer[NTP_PACKET_SIZE]; //buffer to hold incoming & outgoing packets
 
 // NTP Servers:
-//static const char ntpServerName[] = "us.pool.ntp.org";
-static const char ntpServerName[] = "time.nist.gov";
 const int timeZone = -5;     // Central Standard Time
 
 time_t getNtpTime()
@@ -753,6 +757,7 @@ time_t getNtpTime()
     }
   }
   Serial.println("No NTP Response :-(");
+  ntpServerName = ntpServerNameSecondary;
   return 0; // return 0 if unable to get the time
 }
 

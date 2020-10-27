@@ -6,14 +6,14 @@
 #include <ArduinoOTA.h>
 
 #include "/home/suzi/src/sketches/defs/sierra_wifi_defs.h"
-#define version_str "v1.0.3-20200516"
+#define version_str "v1.0.4-20201026 (fixed IP for new AP)"
 /*
 **  Network variables...
 */
-IPAddress ip(192, 168, 129, STOP_LIGHT_IP_LAST_FIELD);  // make sure IP is *outside* of DHCP pool range
-IPAddress gateway(192, 168, 129, 254);
-IPAddress subnet(255, 255, 255, 0);
-IPAddress DNS(192, 168, 129, 254);
+IPAddress ip(IP1, IP2, IP3, STOP_LIGHT_IP_LAST_FIELD);  // make sure IP is *outside* of DHCP pool range
+IPAddress gateway(GW1, GW2, GW3, GW4);
+IPAddress subnet(SN1, SN2, SN3, SN4);
+IPAddress DNS(DNS1, DNS2, DNS3, DNS4);
 const char* ssid     = SSID;
 const char* password = WIFI_PW;
 int server_port = 80;

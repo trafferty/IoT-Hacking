@@ -61,6 +61,7 @@ typedef enum {
 } LED_program_t;
 
 enum Mem_Locs {
+    update_flag,
     s1_sec, s1_min, s1_hour, e1_sec, e1_min, e1_hour,
     s2_sec, s2_min, s2_hour, e2_sec, e2_min, e2_hour 
 };
@@ -74,7 +75,8 @@ enum Mem_Locs {
 
 #define FADESPEED 3     // make this higher to slow down
 
-#define EEPROM_SIZE 12
+#define EEPROM_SIZE 13
+#define UPDATE_VAL  23
 
 /*
 **  global variables...
@@ -226,18 +228,36 @@ void setup()
   EEPROM.begin(EEPROM_SIZE);
 
   // setup start/end time structs for scheduler
-  tmStart1.Second = EEPROM.read(s1_sec);
-  tmStart1.Minute = EEPROM.read(s1_min);
-  tmStart1.Hour   = EEPROM.read(s1_hour);
-  tmEnd1.Second   = EEPROM.read(e1_sec);
-  tmEnd1.Minute   = EEPROM.read(e1_min);
-  tmEnd1.Hour     = EEPROM.read(e1_hour);
-  tmStart2.Second = EEPROM.read(s2_sec);
-  tmStart2.Minute = EEPROM.read(s2_min);
-  tmStart2.Hour   = EEPROM.read(s2_hour);
-  tmEnd2.Second   = EEPROM.read(e2_sec);
-  tmEnd2.Minute   = EEPROM.read(e2_min);
-  tmEnd2.Hour     = EEPROM.read(e2_hour);
+  if (UPDATE_VAL == EEPROM.read(update_flag))
+  {
+    tmStart1.Second = EEPROM.read(s1_sec);
+    tmStart1.Minute = EEPROM.read(s1_min);
+    tmStart1.Hour   = EEPROM.read(s1_hour);
+    tmEnd1.Second   = EEPROM.read(e1_sec);
+    tmEnd1.Minute   = EEPROM.read(e1_min);
+    tmEnd1.Hour     = EEPROM.read(e1_hour);
+    tmStart2.Second = EEPROM.read(s2_sec);
+    tmStart2.Minute = EEPROM.read(s2_min);
+    tmStart2.Hour   = EEPROM.read(s2_hour);
+    tmEnd2.Second   = EEPROM.read(e2_sec);
+    tmEnd2.Minute   = EEPROM.read(e2_min);
+    tmEnd2.Hour     = EEPROM.read(e2_hour);
+  }
+  else
+  {
+    tmStart1.Second = 0;
+    tmStart1.Minute = 0;
+    tmStart1.Hour   = 18;
+    tmEnd1.Second   = 0;
+    tmEnd1.Minute   = 0;
+    tmEnd1.Hour     = 23;
+    tmStart2.Second = 0;
+    tmStart2.Minute = 15;
+    tmStart2.Hour   = 6;
+    tmEnd2.Second   = 0;
+    tmEnd2.Minute   = 45;
+    tmEnd2.Hour     = 6;
+  }
 
   digitalWrite(MOTION_DETECTED_LED, HIGH);   // turn the LED on (HIGH is the voltage level)
   delay(2000);                       // wait for a second
@@ -526,6 +546,7 @@ void handle_action_setup_timing()
   EEPROM.write(e2_sec,  tmEnd2.Second  );
   EEPROM.write(e2_min,  tmEnd2.Minute  );
   EEPROM.write(e2_hour, tmEnd2.Hour    );
+  EEPROM.write(update_flag, UPDATE_VAL);
   EEPROM.commit();
 }
 
@@ -626,6 +647,8 @@ String CreateHTML(){
   ptr +=String(led_program)+"</td></tr>\n";
   ptr +="</tbody></table>\n";
 
+  ptr +="<a class=\"button button-off\" href=\"/setup\">Setup</a>\n";
+
   ptr +="</body>\n";
   ptr +="</html>\n";
   return ptr;
@@ -641,8 +664,12 @@ String CreateSetupHTML(){
   ptr += "input, textarea { font: 1em sans-serif; width: 300px; box-sizing: border-box; border: 1px solid #999;}\n"
   ptr += "input:focus, textarea:focus { border-color: #000;}\n"
   ptr += "textarea { vertical-align: top; height: 5em;}\n"
-  ptr += ".button { padding-left: 90px; }\n"
-  ptr += "button { margin-left: .5em;}\n"
+  ptr +=".button {display: inline-block;width: 400px;background-color: #1abc9c;border: none;color: white;padding: 10px 20px;text-decoration: none;font-size: 25px;margin: 20px auto 25px;cursor: pointer;border-radius: 4px;}\n";
+  ptr +=".button-on {background-color: #1abc9c;}\n";
+  ptr +=".button-on:active {background-color: #16a085;}\n";
+  ptr +=".button-off {background-color: #34495e;}\n";
+  ptr +=".button-off:active {background-color: #2c3e50;}\n";
+  ptr +="p {font-size: 14px;color: #888;margin-bottom: 10px;}\n";
   ptr += "</style>\n"
   ptr += "<body> <h2>Setup Timing</h2>\n";
   ptr += "<form action=\"/action_setup_timing\" method=\"post\"\n>";
@@ -685,7 +712,9 @@ String CreateSetupHTML(){
   ptr += "</li>\n";
   ptr += "</ul>\n";
   ptr += "<input type=\"submit\" value=\"Submit\">\n";
-  ptr += "</form> </body> </html>\n";
+  ptr += "</form> \n";
+  ptr +="<a class=\"button button-off\" href=\"/\">Main Page</a>\n";
+  ptr += "</body> </html>\n";
 
   return ptr;
 }

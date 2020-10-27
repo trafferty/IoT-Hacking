@@ -8,11 +8,14 @@ label { display: inline-block; width: 90px; text-align: right;}
 input, textarea { font: 1em sans-serif; width: 300px; box-sizing: border-box; border: 1px solid #999;}
 input:focus, textarea:focus { border-color: #000;}
 textarea { vertical-align: top; height: 5em;}
-.button { padding-left: 90px; }
-button { margin-left: .5em;}
+ .button {display: inline-block;width: 400px;background-color: #1abc9c;border: none;color: white;padding: 10px 20px;text-decoration: none;font-size: 25px;margin: 20px auto 25px;cursor: pointer;border-radius: 4px;};
+.button-on {background-color: #1abc9c;}";
+.button-on:active {background-color: #16a085;}";
+.button-off {background-color: #34495e;}";
+.button-off:active {background-color: #2c3e50;}";
+p {font-size: 14px;color: #888;margin-bottom: 10px;}";
 </style>
 <body>
-
 <h2>Setup Timing</h2>
 
 <form action="/action_setup_timing" method="post">
@@ -54,8 +57,8 @@ button { margin-left: .5em;}
     <input type="text" id="e2_sec" name="e2_sec" value=0>
   </li>
  </ul>
-  <input type="submit" value="Submit">
+  <input type="submit" class="button button-off" value="Submit">
 </form>
-
+<div margin: auto;><a class="button button-off" href="/">Main Page</a></div>
 </body>
 </html>

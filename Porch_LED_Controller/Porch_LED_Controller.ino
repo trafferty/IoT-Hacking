@@ -95,6 +95,7 @@ time_t end1_time;
 time_t start2_time;
 time_t end2_time;
 time_t now_time;
+bool init_from_EEPROM = false;
 
 const int maxBrightness = 1023;
 //int maxBrightness = 500;
@@ -227,9 +228,11 @@ void setup()
   // initialize EEPROM with predefined size
   EEPROM.begin(EEPROM_SIZE);
 
+  Serial.println("Initializing start/end times:");
   // setup start/end time structs for scheduler
   if (UPDATE_VAL == EEPROM.read(update_flag))
   {
+    Serial.println("...updating from EEPROM");
     tmStart1.Second = EEPROM.read(s1_sec);
     tmStart1.Minute = EEPROM.read(s1_min);
     tmStart1.Hour   = EEPROM.read(s1_hour);
@@ -242,9 +245,11 @@ void setup()
     tmEnd2.Second   = EEPROM.read(e2_sec);
     tmEnd2.Minute   = EEPROM.read(e2_min);
     tmEnd2.Hour     = EEPROM.read(e2_hour);
+    init_from_EEPROM = true;
   }
   else
   {
+    Serial.println("...initializing to default values");
     tmStart1.Second = 0;
     tmStart1.Minute = 0;
     tmStart1.Hour   = 18;
@@ -257,7 +262,8 @@ void setup()
     tmEnd2.Second   = 0;
     tmEnd2.Minute   = 45;
     tmEnd2.Hour     = 6;
-  }
+    init_from_EEPROM = false;
+ }
 
   digitalWrite(MOTION_DETECTED_LED, HIGH);   // turn the LED on (HIGH is the voltage level)
   delay(2000);                       // wait for a second
@@ -645,6 +651,12 @@ String CreateHTML(){
   ptr +=light_state_+"</td></tr>\n";
   ptr +="<tr><td>LED Program:</td><td>";
   ptr +=String(led_program)+"</td></tr>\n";
+  ptr +="<tr><td>Init from EEPROM:</td><td>";
+  ptr +=String(init_from_EEPROM)+"</td></tr>\n";
+  ptr +="<tr><td>Update flag:</td><td>";
+  ptr +=String(EEPROM.read(update_flag))+"</td></tr>\n";
+  ptr +="<tr><td>Start1 sec:</td><td>";
+  ptr +=String(EEPROM.read(s1_sec))+"</td></tr>\n";
   ptr +="</tbody></table>\n";
 
   ptr +="<a class=\"button button-off\" href=\"/setup\">Setup</a>\n";
@@ -655,22 +667,22 @@ String CreateHTML(){
 }
 
 String CreateSetupHTML(){
-  String ptr = "<!DOCTYPE html> <html>"
-  ptr += "<style>\n"
-  ptr += "form {margin: 0 auto; width: 400px;padding: 1em; border: 1px solid #CCC;border-radius: 1em;}\n"
-  ptr += "ul {list-style: none; padding: 0; margin: 0;}\n"
-  ptr += "form li + li { margin-top: 1em;}\n"
-  ptr += "label { display: inline-block; width: 90px; text-align: right;}\n"
-  ptr += "input, textarea { font: 1em sans-serif; width: 300px; box-sizing: border-box; border: 1px solid #999;}\n"
-  ptr += "input:focus, textarea:focus { border-color: #000;}\n"
-  ptr += "textarea { vertical-align: top; height: 5em;}\n"
+  String ptr = "<!DOCTYPE html> <html>";
+  ptr += "<style>\n";
+  ptr += "form {margin: 0 auto; width: 400px;padding: 1em; border: 1px solid #CCC;border-radius: 1em;}\n";
+  ptr += "ul {list-style: none; padding: 0; margin: 0;}\n";
+  ptr += "form li + li { margin-top: 1em;}\n";
+  ptr += "label { display: inline-block; width: 90px; text-align: right;}\n";
+  ptr += "input, textarea { font: 1em sans-serif; width: 300px; box-sizing: border-box; border: 1px solid #999;}\n";
+  ptr += "input:focus, textarea:focus { border-color: #000;}\n";
+  ptr += "textarea { vertical-align: top; height: 5em;}\n";
   ptr +=".button {display: inline-block;width: 400px;background-color: #1abc9c;border: none;color: white;padding: 10px 20px;text-decoration: none;font-size: 25px;margin: 20px auto 25px;cursor: pointer;border-radius: 4px;}\n";
   ptr +=".button-on {background-color: #1abc9c;}\n";
   ptr +=".button-on:active {background-color: #16a085;}\n";
   ptr +=".button-off {background-color: #34495e;}\n";
   ptr +=".button-off:active {background-color: #2c3e50;}\n";
   ptr +="p {font-size: 14px;color: #888;margin-bottom: 10px;}\n";
-  ptr += "</style>\n"
+  ptr += "</style>\n";
   ptr += "<body> <h2>Setup Timing</h2>\n";
   ptr += "<form action=\"/action_setup_timing\" method=\"post\"\n>";
   ptr += "<ul>\n";

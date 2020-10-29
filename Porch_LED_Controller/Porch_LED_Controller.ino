@@ -63,7 +63,8 @@ typedef enum {
 enum Mem_Locs {
     update_flag,
     s1_sec, s1_min, s1_hour, e1_sec, e1_min, e1_hour,
-    s2_sec, s2_min, s2_hour, e2_sec, e2_min, e2_hour 
+    s2_sec, s2_min, s2_hour, e2_sec, e2_min, e2_hour,
+    blinkDelay, randomDelay
 };
 
 // Pin mapping for the first string of lights. Pins D5 - D7
@@ -75,14 +76,13 @@ enum Mem_Locs {
 
 #define FADESPEED 3     // make this higher to slow down
 
-#define EEPROM_SIZE 13
+#define EEPROM_SIZE 15
 #define UPDATE_VAL  23
 
 /*
 **  global variables...
 */
 uint8_t light_state = ON;
-uint8_t fade_speed = FADESPEED;
 bool force_on = false;
 
 // structs to hold start/end times for scheduling.
@@ -114,6 +114,9 @@ LED_Fade_States_t fade_state;
 Blink_States_t    blink_state;
 Run_States_t      run_state;
 LED_program_t     led_program;
+int fadeDelay_ms = FADESPEED;
+int blinkDelay_ms  = 500;
+int randomDelay_ms = 500;
 
 void setup() 
 {
@@ -171,22 +174,39 @@ void setup()
     server.send(200, "text/html", CreateHTML());
   });
   server.on("/fade_ultra_slow", []() {
-    fade_speed = 10;
+    fadeDelay_ms = 10;
     server.send(200, "text/html", CreateHTML());
   });
   server.on("/fade_slow", []() {
-    fade_speed = 5;
+    fadeDelay_ms = 5;
     server.send(200, "text/html", CreateHTML());
   });
   server.on("/fade_medium", []() {
-    fade_speed = 3;
+    fadeDelay_ms = 3;
     server.send(200, "text/html", CreateHTML());
   });
   server.on("/fade_fast", []() {
-    fade_speed = 0;
+    fadeDelay_ms = 0;
     server.send(200, "text/html", CreateHTML());
   });
   server.on("/setup", []() {
+    server.send(200, "text/html", CreateSetupHTML());
+  });
+  server.on("/mode_fade", []() {
+    led_program = program_fade;
+    currentR = minBrightness;
+    currentG = minBrightness;
+    currentB = maxBrightness;
+    analogWrite(BLUE_LED_OUT, currentB);
+    fade_state = blue_to_violet;
+    server.send(200, "text/html", CreateSetupHTML());
+  });
+  server.on("/mode_random", []() {
+    led_program = program_random;
+    server.send(200, "text/html", CreateSetupHTML());
+  });
+  server.on("/mode_blink", []() {
+    led_program = program_blink;
     server.send(200, "text/html", CreateSetupHTML());
   });
   server.on("/action_setup_timing", []() {
@@ -224,6 +244,12 @@ void setup()
 
   led_program = program_fade;
   allLEDsOff();
+  // if analog input pin 0 is unconnected, random analog
+  // noise will cause the call to randomSeed() to generate
+  // different seed numbers each time the sketch runs.
+  // randomSeed() will then shuffle the random function.
+  randomSeed(analogRead(A0));
+
   
   // initialize EEPROM with predefined size
   EEPROM.begin(EEPROM_SIZE);
@@ -245,6 +271,8 @@ void setup()
     tmEnd2.Second   = EEPROM.read(e2_sec);
     tmEnd2.Minute   = EEPROM.read(e2_min);
     tmEnd2.Hour     = EEPROM.read(e2_hour);
+    blinkDelay_ms   = EEPROM.read(blinkDelay);
+    randomDelay_ms  = EEPROM.read(randomDelay);
     init_from_EEPROM = true;
   }
   else
@@ -262,6 +290,8 @@ void setup()
     tmEnd2.Second   = 0;
     tmEnd2.Minute   = 45;
     tmEnd2.Hour     = 6;
+    blinkDelay_ms   = 500;
+    randomDelay_ms  = 500;    
     init_from_EEPROM = false;
  }
 
@@ -346,14 +376,17 @@ void loop()
     {
       case program_fade:
         fadeLEDs();
+        delay(fadeDelay_ms);
         break;
 
       case program_random:
-        fadeLEDs();
+        randomLEDs();
+        delay(randomDelay_ms);
         break;
 
       case program_blink:
-        fadeLEDs();
+        blinkLEDs();
+        delay(blinkDelay_ms);
         break;
 
       default:
@@ -361,8 +394,6 @@ void loop()
     }
   }
 
-  delay(fade_speed);
-  
   server.handleClient();
   MDNS.update();  
 }
@@ -437,6 +468,13 @@ void fadeLEDs()
   // Serial.println(currentB);
 }
 
+void randomLEDs()
+{
+  analogWrite(RED_LED_OUT, random(minBrightness, maxBrightness));
+  analogWrite(GREEN_LED_OUT, random(minBrightness, maxBrightness));
+  analogWrite(BLUE_LED_OUT, random(minBrightness, maxBrightness));
+}
+
 void blinkLEDs()
 {
 
@@ -453,10 +491,48 @@ void blinkLEDs()
       Serial.println("Changing state to blink_red");
       break;
 
+    case blink_red:
+      analogWrite(RED_LED_OUT, maxBrightness);
+      analogWrite(GREEN_LED_OUT, minBrightness);
+      analogWrite(BLUE_LED_OUT, minBrightness);
+      blink_state = blink_yellow;
+      Serial.println("Changing state to blink_yellow");
+      break;
+
+    case blink_yellow:
+      analogWrite(RED_LED_OUT, maxBrightness);
+      analogWrite(GREEN_LED_OUT, maxBrightness);
+      analogWrite(BLUE_LED_OUT, minBrightness);
+      blink_state = blink_green;
+      Serial.println("Changing state to blink_green");
+      break;
+
+    case blink_green:
+      analogWrite(RED_LED_OUT, minBrightness);
+      analogWrite(GREEN_LED_OUT, maxBrightness);
+      analogWrite(BLUE_LED_OUT, minBrightness);
+      blink_state = blink_teal;
+      Serial.println("Changing state to blink_teal");
+      break;
+
+    case blink_teal:
+      analogWrite(RED_LED_OUT, minBrightness);
+      analogWrite(GREEN_LED_OUT, maxBrightness);
+      analogWrite(BLUE_LED_OUT, maxBrightness);
+      blink_state = blink_violet;
+      Serial.println("Changing state to blink_violet");
+      break;
+
+    case blink_violet:
+      analogWrite(RED_LED_OUT, maxBrightness);
+      analogWrite(GREEN_LED_OUT, minBrightness);
+      analogWrite(BLUE_LED_OUT, maxBrightness);
+      blink_state = blink_blue;
+      Serial.println("Changing state to blink_blue");
+      break;
 
     default:
-    Serial.println("fadeLEDs: state not supported");
-    fade_state = blue_to_violet;
+      blink_state = blink_blue;
   }
 
   // Serial.print(currentR);
@@ -540,6 +616,9 @@ void handle_action_setup_timing()
   tmEnd2.Minute   = (server.arg("e2_min")).toInt(); 
   tmEnd2.Hour     = (server.arg("e2_hour")).toInt();
 
+  blinkDelay_ms   = (server.arg("blinkDelay_ms")).toInt();
+  randomDelay_ms  = (server.arg("randomDelay_ms")).toInt();
+
   EEPROM.write(s1_sec,  tmStart1.Second);
   EEPROM.write(s1_min,  tmStart1.Minute);
   EEPROM.write(s1_hour, tmStart1.Hour  );
@@ -552,7 +631,9 @@ void handle_action_setup_timing()
   EEPROM.write(e2_sec,  tmEnd2.Second  );
   EEPROM.write(e2_min,  tmEnd2.Minute  );
   EEPROM.write(e2_hour, tmEnd2.Hour    );
-  EEPROM.write(update_flag, UPDATE_VAL);
+  EEPROM.write(e2_hour, tmEnd2.Hour    );
+  EEPROM.write(blinkDelay,  blinkDelay_ms);
+  EEPROM.write(randomDelay, randomDelay_ms);
   EEPROM.commit();
 }
 
@@ -628,6 +709,10 @@ String CreateHTML(){
   ptr +="<a class=\"button button-off\" href=\"/fade_medium\">Medium</a>\n";
   ptr +="<a class=\"button button-off\" href=\"/fade_fast\">Fast</a>\n";
 
+  ptr +="<p>Mode:</p><a class=\"button button-off\" href=\"/mode_fade\">Fade</a>\n";
+  ptr +="<a class=\"button button-off\" href=\"/mode_random\">Random</a>\n";
+  ptr +="<a class=\"button button-off\" href=\"/mode_blink\">Blink</a>\n";
+
   String time_status = (timeStatus()!=timeNotSet?"True":"False");
   String NTP_time_set = (NTPTimeSet?"True":"False");
   String run_state_ = (run_state==state_running?"Running":"Idle");
@@ -651,6 +736,10 @@ String CreateHTML(){
   ptr +=light_state_+"</td></tr>\n";
   ptr +="<tr><td>LED Program:</td><td>";
   ptr +=String(led_program)+"</td></tr>\n";
+  ptr +="<tr><td>Random Delay:</td><td>";
+  ptr +=String(randomDelay_ms)+"</td></tr>\n";
+  ptr +="<tr><td>Blink Delay:</td><td>";
+  ptr +=String(blinkDelay_ms)+"</td></tr>\n";
   ptr +="<tr><td>Init from EEPROM:</td><td>";
   ptr +=String(init_from_EEPROM)+"</td></tr>\n";
   ptr +="<tr><td>Update flag:</td><td>";
@@ -721,6 +810,13 @@ String CreateSetupHTML(){
   ptr += "<input type=\"text\" id=\"e2_min\" name=\"e2_min\" value="+String(tmEnd2.Minute)+">\n";
   ptr += "<label for=\"e2_sec\">Sec: </label>\n";
   ptr += "<input type=\"text\" id=\"e2_sec\" name=\"e2_sec\" value="+String(tmEnd2.Second)+">\n";
+  ptr += "</li>\n";
+  ptr += "<h4> Misc Vars </h4>\n";
+  ptr += "<li>\n";
+  ptr += "<label for=\"randomDelay_ms\">Random Delay (ms): </label>\n";
+  ptr += "<input type=\"text\" id=\"randomDelay_ms\" name=\"randomDelay_ms\" value="+String(randomDelay_ms)+">\n";
+  ptr += "<label for=\"blinkDelay_ms\">Blink Delay (ms): </label>\n";
+  ptr += "<input type=\"text\" id=\"blinkDelay_ms\" name=\"blinkDelay_ms\" value="+String(blinkDelay_ms)+">\n";
   ptr += "</li>\n";
   ptr += "</ul>\n";
   ptr += "<input type=\"submit\" value=\"Submit\">\n";

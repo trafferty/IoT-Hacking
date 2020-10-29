@@ -13,7 +13,7 @@
 #include <EEPROM.h>
 
 #include "/home/suzi/src/sketches/defs/sierra_wifi_defs.h"
-#define version_str "v0.10.0-20201025 (added setup; fixed 'on' bug; fixed DNS bug)"
+#define version_str "v0.10.1-20201028 (added random and blink support)"
 
 // forward declarations...
 void wifi_init();
@@ -199,15 +199,15 @@ void setup()
     currentB = maxBrightness;
     analogWrite(BLUE_LED_OUT, currentB);
     fade_state = blue_to_violet;
-    server.send(200, "text/html", CreateSetupHTML());
+    server.send(200, "text/html", CreateHTML());
   });
   server.on("/mode_random", []() {
     led_program = program_random;
-    server.send(200, "text/html", CreateSetupHTML());
+    server.send(200, "text/html", CreateHTML());
   });
   server.on("/mode_blink", []() {
     led_program = program_blink;
-    server.send(200, "text/html", CreateSetupHTML());
+    server.send(200, "text/html", CreateHTML());
   });
   server.on("/action_setup_timing", []() {
     handle_action_setup_timing();
@@ -680,7 +680,7 @@ String CreateHTML(){
   ptr +="<title>Porch Light Control</title>\n";
   ptr +="<style>html { font-family: Helvetica; display: inline-block; margin: 0px auto; text-align: center;}\n";
   ptr +="body{margin-top: 50px;} h1 {color: #444444;margin: 50px auto 30px;} h3 {color: #444444;margin-bottom: 50px;}\n";
-  ptr +=".button {display: inline-block;width: 80px;background-color: #1abc9c;border: none;color: white;padding: 8px 20px;text-decoration: none;font-size: 25px;margin: 0px auto 25px;cursor: pointer;border-radius: 4px;}\n";
+  ptr +=".button {display: inline-block;width: 120px;background-color: #1abc9c;border: none;color: white;padding: 8px 20px;text-decoration: none;font-size: 25px;margin: 0px auto 25px;cursor: pointer;border-radius: 4px;}\n";
   ptr +=".button-on {background-color: #1abc9c;}\n";
   ptr +=".button-on:active {background-color: #16a085;}\n";
   ptr +=".button-off {background-color: #34495e;}\n";
@@ -703,8 +703,9 @@ String CreateHTML(){
   } else {
     ptr +="<p>Light Status: OFF</p><a class=\"button button-off\" href=\"/light_on\">ON</a>\n";
   }
+  ptr +="<a class=\"button button-off\" href=\"/setup\">Setup</a>\n";
 
-  ptr +="<p>Fade Speed:</p><a class=\"button button-off\" href=\"/fade_ultra_slow\">Ultra Slow</a>\n";
+  ptr +="<p>Fade Speed:</p><a class=\"button button-off\" href=\"/fade_ultra_slow\">Way Slow</a>\n";
   ptr +="<a class=\"button button-off\" href=\"/fade_slow\">Slow</a>\n";
   ptr +="<a class=\"button button-off\" href=\"/fade_medium\">Medium</a>\n";
   ptr +="<a class=\"button button-off\" href=\"/fade_fast\">Fast</a>\n";
@@ -747,9 +748,6 @@ String CreateHTML(){
   ptr +="<tr><td>Start1 sec:</td><td>";
   ptr +=String(EEPROM.read(s1_sec))+"</td></tr>\n";
   ptr +="</tbody></table>\n";
-
-  ptr +="<a class=\"button button-off\" href=\"/setup\">Setup</a>\n";
-
   ptr +="</body>\n";
   ptr +="</html>\n";
   return ptr;

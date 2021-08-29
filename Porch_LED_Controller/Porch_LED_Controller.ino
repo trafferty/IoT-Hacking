@@ -403,62 +403,62 @@ void fadeLEDs()
   switch (fade_state)
   {
     case blue_to_violet:
-    currentR += 1;
-    analogWrite(RED_LED_OUT, currentR);
-    if (currentR == maxBrightness) {
-        fade_state = violet_to_red;
-        Serial.println("Changing state to violet_to_red");
-    } 
-    break;
+      currentR += 1;
+      analogWrite(RED_LED_OUT, currentR);
+      if (currentR == maxBrightness) {
+          fade_state = violet_to_red;
+          Serial.println("Changing state to violet_to_red");
+      } 
+      break;
 
     case violet_to_red:
-    currentB -= 1;
-    analogWrite(BLUE_LED_OUT, currentB);
-    if (currentB == minBrightness) {
-        fade_state = red_to_yellow;
-        Serial.println("Changing state to red_to_yellow");
-    } 
-    break;
+      currentB -= 1;
+      analogWrite(BLUE_LED_OUT, currentB);
+      if (currentB == minBrightness) {
+          fade_state = red_to_yellow;
+          Serial.println("Changing state to red_to_yellow");
+      } 
+      break;
 
     case red_to_yellow:
-    currentG += 1;
-    analogWrite(GREEN_LED_OUT, currentG);
-    if (currentG == maxBrightness) {
-        fade_state = yellow_to_green;
-        Serial.println("Changing state to yellow_to_green");
-    } 
-    break;
+      currentG += 1;
+      analogWrite(GREEN_LED_OUT, currentG);
+      if (currentG == maxBrightness) {
+          fade_state = yellow_to_green;
+          Serial.println("Changing state to yellow_to_green");
+      } 
+      break;
 
     case yellow_to_green:
-    currentR -= 1;
-    analogWrite(RED_LED_OUT, currentR);
-    if (currentR == minBrightness) {
-        fade_state = green_to_teal;
-        Serial.println("Changing state to green_to_teal");
-    } 
-    break;
+      currentR -= 1;
+      analogWrite(RED_LED_OUT, currentR);
+      if (currentR == minBrightness) {
+          fade_state = green_to_teal;
+          Serial.println("Changing state to green_to_teal");
+      } 
+      break;
 
     case green_to_teal:
-    currentB += 1;
-    analogWrite(BLUE_LED_OUT, currentB);
-    if (currentB == maxBrightness) {
-        fade_state = teal_to_blue;
-        Serial.println("Changing state to teal_to_blue");
-    } 
-    break;
+      currentB += 1;
+      analogWrite(BLUE_LED_OUT, currentB);
+      if (currentB == maxBrightness) {
+          fade_state = teal_to_blue;
+          Serial.println("Changing state to teal_to_blue");
+      } 
+      break;
 
     case teal_to_blue:
-    currentG -= 1;
-    analogWrite(GREEN_LED_OUT, currentG);
-    if (currentG == minBrightness) {
-        fade_state = blue_to_violet;
-        Serial.println("Changing state to blue_to_violet");
-    } 
-    break;
+      currentG -= 1;
+      analogWrite(GREEN_LED_OUT, currentG);
+      if (currentG == minBrightness) {
+          fade_state = blue_to_violet;
+          Serial.println("Changing state to blue_to_violet");
+      } 
+      break;
 
     default:
-    Serial.println("fadeLEDs: state not supported");
-    fade_state = blue_to_violet;
+      Serial.println("fadeLEDs: state not supported");
+      fade_state = blue_to_violet;
   }
 
   // Serial.print(currentR);
@@ -470,63 +470,60 @@ void fadeLEDs()
 
 void randomLEDs()
 {
-  analogWrite(RED_LED_OUT, random(minBrightness, maxBrightness));
-  analogWrite(GREEN_LED_OUT, random(minBrightness, maxBrightness));
-  analogWrite(BLUE_LED_OUT, random(minBrightness, maxBrightness));
+  currentR = random(minBrightness, maxBrightness);
+  currentG = random(minBrightness, maxBrightness);
+  currentB = random(minBrightness, maxBrightness);
+  setLEDsValue(currentR, currentG, currentB);
 }
 
 void blinkLEDs()
 {
-
-   // blink_blue, blink_red, blink_yellow, blink_green, blink_teal, blink_violet
-
-
   switch (blink_state)
   {
     case blink_blue:
-      analogWrite(RED_LED_OUT, minBrightness);
-      analogWrite(GREEN_LED_OUT, minBrightness);
-      analogWrite(BLUE_LED_OUT, maxBrightness);
+      currentR = minBrightness;
+      currentG = minBrightness;
+      currentB = maxBrightness;
       blink_state = blink_red;
       Serial.println("Changing state to blink_red");
       break;
 
     case blink_red:
-      analogWrite(RED_LED_OUT, maxBrightness);
-      analogWrite(GREEN_LED_OUT, minBrightness);
-      analogWrite(BLUE_LED_OUT, minBrightness);
+      currentR = maxBrightness;
+      currentG = minBrightness;
+      currentB = minBrightness;
       blink_state = blink_yellow;
       Serial.println("Changing state to blink_yellow");
       break;
 
     case blink_yellow:
-      analogWrite(RED_LED_OUT, maxBrightness);
-      analogWrite(GREEN_LED_OUT, maxBrightness);
-      analogWrite(BLUE_LED_OUT, minBrightness);
+      currentR = maxBrightness;
+      currentG = maxBrightness;
+      currentB = minBrightness;
       blink_state = blink_green;
       Serial.println("Changing state to blink_green");
       break;
 
     case blink_green:
-      analogWrite(RED_LED_OUT, minBrightness);
-      analogWrite(GREEN_LED_OUT, maxBrightness);
-      analogWrite(BLUE_LED_OUT, minBrightness);
+      currentR = minBrightness;
+      currentG = maxBrightness;
+      currentB = minBrightness;
       blink_state = blink_teal;
       Serial.println("Changing state to blink_teal");
       break;
 
     case blink_teal:
-      analogWrite(RED_LED_OUT, minBrightness);
-      analogWrite(GREEN_LED_OUT, maxBrightness);
-      analogWrite(BLUE_LED_OUT, maxBrightness);
+      currentR = minBrightness;
+      currentG = maxBrightness;
+      currentB = maxBrightness;
       blink_state = blink_violet;
       Serial.println("Changing state to blink_violet");
       break;
 
     case blink_violet:
-      analogWrite(RED_LED_OUT, maxBrightness);
-      analogWrite(GREEN_LED_OUT, minBrightness);
-      analogWrite(BLUE_LED_OUT, maxBrightness);
+      currentR = maxBrightness;
+      currentG = minBrightness;
+      currentB = maxBrightness;
       blink_state = blink_blue;
       Serial.println("Changing state to blink_blue");
       break;
@@ -535,11 +532,20 @@ void blinkLEDs()
       blink_state = blink_blue;
   }
 
+  setLEDsValue(currentR, currentG, currentB);
+
   // Serial.print(currentR);
   // Serial.print(", ");
   // Serial.print(currentG);
   // Serial.print(", ");
   // Serial.println(currentB);
+}
+
+void setLEDsValue(int red, int green, int blue)
+{
+  analogWrite(RED_LED_OUT, red);
+  analogWrite(GREEN_LED_OUT, green);
+  analogWrite(BLUE_LED_OUT, blue);
 }
 
 void allLEDsValue(int value)
@@ -575,29 +581,6 @@ void toggle_light(LIGHT_STATE_t state)
     run_state = state_running;
     force_on = true;
   } 
-}
-/* ----- Util functions ----- */
-void wifi_init()
-{
-  Serial.print("Setting up network with static IP.");
-  WiFi.config(ip, gateway, subnet, DNS);
-  delay(100);
-  WiFi.mode(WIFI_STA);
-  WiFi.begin(ssid, password);
-  // Connect to Wi-Fi network with SSID and password
-  Serial.printf("Connecting to %s", ssid);
-  while (WiFi.status() != WL_CONNECTED) {
-      Serial.print(".");
-      delay(200);
-  }
-  Serial.println();
-  while (WiFi.waitForConnectResult() != WL_CONNECTED) {
-    Serial.println("Fail connecting");
-    delay(5000);
-    ESP.restart();
-  }
-  Serial.print("WiFi connected. IP address: ");
-  Serial.println(WiFi.localIP());
 }
 
 void handle_action_setup_timing()
@@ -825,6 +808,29 @@ String CreateSetupHTML(){
   return ptr;
 }
 
+/* ----- Util functions ----- */
+void wifi_init()
+{
+  Serial.print("Setting up network with static IP.");
+  WiFi.config(ip, gateway, subnet, DNS);
+  delay(100);
+  WiFi.mode(WIFI_STA);
+  WiFi.begin(ssid, password);
+  // Connect to Wi-Fi network with SSID and password
+  Serial.printf("Connecting to %s", ssid);
+  while (WiFi.status() != WL_CONNECTED) {
+      Serial.print(".");
+      delay(200);
+  }
+  Serial.println();
+  while (WiFi.waitForConnectResult() != WL_CONNECTED) {
+    Serial.println("Fail connecting");
+    delay(5000);
+    ESP.restart();
+  }
+  Serial.print("WiFi connected. IP address: ");
+  Serial.println(WiFi.localIP());
+}
 
 void digitalClockDisplay()
 {

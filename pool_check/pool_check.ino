@@ -47,6 +47,7 @@ float dist_mm;
 String lastStatus;
 bool sensorFound;
 long retryCnt;
+bool autoUpdate;
 
 void setup() {
   Serial.begin( 57600 );
@@ -55,6 +56,8 @@ void setup() {
   //  Note: Connect SCL to GPIO1, and SDA to GPIO2
   Wire.begin(2,0);
 
+  autoUpdate = true;
+  
   retryCnt = 0;
   Serial.println("Can we find sensor?");
   if (! vl.begin()) {
@@ -116,6 +119,18 @@ void setup() {
   server.onNotFound(handleNotFound);
 
   server.on("/", []() {
+    String html_out = CreateHTML();
+    server.send(200, "text/html", html_out);
+  });
+
+  server.on("/autoOn", []() {
+    autoUpdate = true;
+    String html_out = CreateHTML();
+    server.send(200, "text/html", html_out);
+  });
+
+  server.on("/autoOff", []() {
+    autoUpdate = false;
     String html_out = CreateHTML();
     server.send(200, "text/html", html_out);
   });
@@ -332,6 +347,14 @@ String CreateHTML(){
   ptr +=".button-off:active {background-color: #2c3e50;}\n";
   ptr +="p {font-size: 14px;color: #888;margin-bottom: 10px;}\n";
   ptr +="</style>\n";
+
+  if( autoUpdate) {
+    ptr +="<script>";
+    ptr +="function refresh(refreshPeriod) { setTimeout('location.reload(true)', refreshPeriod); }";
+    ptr +="window.onload = refresh(500);";
+    ptr +="</script>\n";
+  }
+
   ptr +="</head>\n";
   ptr +="<body>\n";
   ptr +="<h1>Default Server</h1>\n";
@@ -340,6 +363,12 @@ String CreateHTML(){
   ptr +="</h6>\n";
   
   ptr += "<div id=\"container\"><a class=\"button button-on\" href=\"/update\">UPDATE</a></div>\n";
+
+  if( autoUpdate) {    
+     ptr += "<div id=\"container\"><a class=\"button button-on\" href=\"/autoOff\">Auto Off</a>\n";
+  } else {
+     ptr += "<div id=\"container\"><a class=\"button button-off\" href=\"/autoOn\">Auto On</a>\n";
+  }
 
   ptr +="<table><caption>Debug Info</caption><tbody>\n";
   //ptr +="<thead><tr><th>Variable</th><th>Value</th></tr></thead>\n";
@@ -350,6 +379,11 @@ String CreateHTML(){
   ptr +="<tr><td>Last status: </td><td>"+lastStatus+"</td></tr>\n";
   ptr +="<tr><td>retryCnt: </td><td>"+String(retryCnt)+"</td></tr>\n";
   ptr +="</tbody></table>\n";
+
+
+
+
+
 
   ptr +="</body>\n";
   ptr +="</html>\n";
